@@ -172,24 +172,41 @@ export default function Dashboard() {
     const w = svgDimensions.width - padding.left - padding.right;
     const h = svgDimensions.height - padding.top - padding.bottom;
 
-    const coords = points.map((p, idx) => {
-      const totalVal = p.success + p.failed + p.executing;
-      const x = padding.left + (idx / (points.length - 1)) * w;
-      const y = svgDimensions.height - padding.bottom - (totalVal / maxVal) * h;
-      return { x, y, label: p.label, total: totalVal, success: p.success, failed: p.failed, executing: p.executing };
-    });
+    const successCoords = points.map((p, idx) => ({
+      x: padding.left + (idx / (points.length - 1)) * w,
+      y: svgDimensions.height - padding.bottom - (p.success / maxVal) * h,
+    }));
 
-    // Generate Path string
-    const linePath = coords.reduce((acc, c, idx) => {
-      return acc + (idx === 0 ? `M ${c.x} ${c.y}` : ` L ${c.x} ${c.y}`);
-    }, "");
+    const failedCoords = points.map((p, idx) => ({
+      x: padding.left + (idx / (points.length - 1)) * w,
+      y: svgDimensions.height - padding.bottom - (p.failed / maxVal) * h,
+    }));
 
-    const areaPath =
-      linePath +
-      ` L ${coords[coords.length - 1].x} ${svgDimensions.height - padding.bottom}` +
-      ` L ${coords[0].x} ${svgDimensions.height - padding.bottom} Z`;
+    const executingCoords = points.map((p, idx) => ({
+      x: padding.left + (idx / (points.length - 1)) * w,
+      y: svgDimensions.height - padding.bottom - (p.executing / maxVal) * h,
+    }));
 
-    return { coords, linePath, areaPath };
+    const makePath = (coords: { x: number; y: number }[]) =>
+      coords.reduce((acc, c, idx) => acc + (idx === 0 ? `M ${c.x} ${c.y}` : ` L ${c.x} ${c.y}`), "");
+
+    const successPath = makePath(successCoords);
+    const failedPath = makePath(failedCoords);
+    const executingPath = makePath(executingCoords);
+
+    return {
+      successPath,
+      failedPath,
+      executingPath,
+      points: points.map((p, idx) => ({
+        x: padding.left + (idx / (points.length - 1)) * w,
+        y: svgDimensions.height - padding.bottom - (Math.max(p.success, p.failed, p.executing) / maxVal) * h,
+        label: p.label,
+        success: p.success,
+        failed: p.failed,
+        executing: p.executing,
+      })),
+    };
   }, [chartData]);
 
   if (error) return <p className="text-danger">{error}</p>;
@@ -277,7 +294,23 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Execution logs trend</h3>
-              <p className="text-xs text-slate-400">Dispatch frequency timeline graph.</p>
+              <p className="text-xs text-slate-400">Timeline graph showing delivered, executing and failed runs.</p>
+            </div>
+            
+            {/* Chart Legend */}
+            <div className="flex items-center gap-3.5 text-[10px] font-semibold text-slate-500 select-none">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Delivered
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                Executing
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                Failed
+              </span>
             </div>
             
             {/* Granularity Selector Toggles */}
@@ -346,54 +379,95 @@ export default function Dashboard() {
                     );
                   })}
 
-                  {/* Area fill */}
-                  <path d={svgPaths.areaPath} fill="url(#chart-area-grad)" />
+                  {/* Line strokes for each status */}
+                  {svgPaths.successPath && (
+                    <path
+                      d={svgPaths.successPath}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+                  {svgPaths.executingPath && (
+                    <path
+                      d={svgPaths.executingPath}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="4 3"
+                    />
+                  )}
+                  {svgPaths.failedPath && (
+                    <path
+                      d={svgPaths.failedPath}
+                      fill="none"
+                      stroke="#ef4444"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
 
-                  {/* Line stroke */}
-                  <path d={svgPaths.linePath} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-
-                  {/* Interactive circular points */}
-                  {svgPaths.coords.map((c, idx) => (
-                    <g key={idx} className="group/pt cursor-pointer">
-                      <circle
-                        cx={c.x}
-                        cy={c.y}
-                        r="3.5"
-                        className="fill-white stroke-brand hover:fill-brand transition-all duration-150"
-                        strokeWidth="2"
+                  {/* Vertical interaction guide lines and tooltips */}
+                  {svgPaths.points.map((pt, idx) => (
+                    <g key={idx} className="group/guide cursor-pointer">
+                      {/* Invisible wider interaction zone */}
+                      <line
+                        x1={pt.x}
+                        y1={padding.top}
+                        x2={pt.x}
+                        y2={svgDimensions.height - padding.bottom}
+                        stroke="transparent"
+                        strokeWidth="24"
                       />
-                      
-                      {/* Tooltip bubble on hover */}
-                      <g className="opacity-0 group-hover/pt:opacity-100 transition-opacity duration-150 pointer-events-none">
+                      {/* Visible dashed guide line on hover */}
+                      <line
+                        x1={pt.x}
+                        y1={padding.top}
+                        x2={pt.x}
+                        y2={svgDimensions.height - padding.bottom}
+                        stroke="#cbd5e1"
+                        strokeDasharray="2 2"
+                        className="opacity-0 group-hover/guide:opacity-100 transition-opacity pointer-events-none"
+                      />
+                      {/* Hover tooltip */}
+                      <g className="opacity-0 group-hover/guide:opacity-100 transition-opacity duration-150 pointer-events-none z-30">
                         <rect
-                          x={c.x - 50}
-                          y={c.y - 58}
-                          width="100"
-                          height="48"
-                          rx="4"
+                          x={pt.x - 55}
+                          y={padding.top}
+                          width="110"
+                          height="56"
+                          rx="5"
                           fill="#1e293b"
                           className="shadow-premium"
                         />
-                        <text x={c.x} y={c.y - 45} textAnchor="middle" className="text-[9px] fill-emerald-400 font-bold font-sans">
-                          Delivered: {c.success}
+                        <text x={pt.x} y={padding.top + 12} textAnchor="middle" className="text-[9px] fill-slate-300 font-bold font-sans">
+                          {pt.label}
                         </text>
-                        <text x={c.x} y={c.y - 33} textAnchor="middle" className="text-[9px] fill-rose-400 font-bold font-sans">
-                          Failed: {c.failed}
+                        <text x={pt.x} y={padding.top + 23} textAnchor="middle" className="text-[9px] fill-emerald-400 font-bold font-sans">
+                          Delivered: {pt.success}
                         </text>
-                        <text x={c.x} y={c.y - 21} textAnchor="middle" className="text-[9px] fill-amber-400 font-bold font-sans">
-                          Executing: {c.executing}
+                        <text x={pt.x} y={padding.top + 34} textAnchor="middle" className="text-[9px] fill-rose-400 font-bold font-sans">
+                          Failed: {pt.failed}
+                        </text>
+                        <text x={pt.x} y={padding.top + 45} textAnchor="middle" className="text-[9px] fill-amber-400 font-bold font-sans">
+                          Executing: {pt.executing}
                         </text>
                       </g>
 
                       {/* X Axis Labels */}
-                      {idx % Math.max(1, Math.round(svgPaths.coords.length / 6)) === 0 && (
+                      {idx % Math.max(1, Math.round(svgPaths.points.length / 6)) === 0 && (
                         <text
-                          x={c.x}
+                          x={pt.x}
                           y={svgDimensions.height - 8}
                           textAnchor="middle"
                           className="text-[9px] font-semibold fill-slate-400 font-sans"
                         >
-                          {c.label}
+                          {pt.label}
                         </text>
                       )}
                     </g>
