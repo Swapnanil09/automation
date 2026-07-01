@@ -22,6 +22,7 @@ and you have the whole stack on your machine.
   by phase, end-to-end runtime traces, and a "where do I change X?" cheat-sheet.
 - **[docs/SETUP.md](docs/SETUP.md)** — running it (Docker or local) + troubleshooting.
 - **[docs/PRODUCTION_SETUP.md](docs/PRODUCTION_SETUP.md)** — production-grade deployment layout, HA cloud setup, and security checklist.
+- **[docs/PERFORMANCE_REPORT.md](docs/PERFORMANCE_REPORT.md)** — performance benchmarks, resource footprints, and database optimization analysis.
 
 ---
 
