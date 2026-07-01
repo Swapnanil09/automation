@@ -38,7 +38,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.dashboard.stats().then(setStats).catch((e) => setError(e.message));
-    api.deliveries.list({ limit: 1000 }).then(setDeliveries).catch(() => setDeliveries([]));
+    api.deliveries.list({ limit: 200 }).then(setDeliveries).catch(() => setDeliveries([]));
   }, []);
 
   // Filter deliveries by selected date range
