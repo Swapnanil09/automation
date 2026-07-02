@@ -7,6 +7,7 @@ export interface User {
   is_superuser: boolean;
   role: string;
   created_at: string;
+  last_password_changed?: string | null;
 }
 
 export interface Tokens {
@@ -74,9 +75,14 @@ export interface Workflow {
   enabled: boolean;
   email_on_failure: boolean;
   webhook_token: string | null;
+  priority: string;
+  blackout_start: string | null;
+  blackout_end: string | null;
+  owner_id: string | null;
   created_at: string;
   updated_at: string;
 }
+
 
 export interface StepRun {
   id: string;
@@ -198,4 +204,51 @@ export interface Delivery {
   started_at: string | null;
   finished_at: string | null;
 }
+
+export interface WorkflowComment {
+  id: string;
+  workflow_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowShare {
+  id: string;
+  workflow_id: string;
+  user_id: string | null;
+  team_name: string | null;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: string | null;
+  created_at: string;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_workspaces: number;
+  total_workflows: number;
+  total_runs: number;
+  success_runs: number;
+  failed_runs: number;
+}
+
+export interface WorkerInfo {
+  name: string;
+  status: string;
+  pid: number | null;
+  uptime: number;
+  active_tasks: number;
+  error?: string;
+}
+
 

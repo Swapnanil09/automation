@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Workflow } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../lib/api";
-import { Button, ErrorText, Field, Input } from "../components/ui";
+import { Button, ErrorText, Field, Input, Logo } from "../components/ui";
 
 export default function Register() {
   const { register } = useAuth();
@@ -11,6 +10,7 @@ export default function Register() {
   const [form, setForm] = useState({ email: "", username: "", password: "", full_name: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
 
   async function submit() {
@@ -31,9 +31,9 @@ export default function Register() {
       <div className="relative z-10 w-full max-w-[400px]">
         <div className="mb-6 flex flex-col items-center">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-brand shadow-xl mb-3 transition-transform duration-300 hover:scale-105">
-            <Workflow className="h-5 w-5" />
+            <Logo className="h-5 w-5" />
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-white leading-none">AutoFlow</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-white leading-none">Report Scheduler</h2>
           <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Self-Hosted Automation</p>
         </div>
 

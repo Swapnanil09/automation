@@ -11,9 +11,20 @@ from app.core.exceptions import NotFoundError
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user import UserRepository
+from app.schemas.auth import RegisterRequest
 from app.schemas.user import UserAdminUpdate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post("", response_model=UserRead, status_code=201)
+async def create_user(
+    data: RegisterRequest,
+    _: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    from app.services.auth_service import AuthService
+    return await AuthService(db).register(data)
 
 
 @router.get("", response_model=list[UserRead])
@@ -21,6 +32,7 @@ async def list_users(
     _: User = Depends(get_current_superuser),
     db: AsyncSession = Depends(get_db),
 ) -> list[User]:
+
     return await UserRepository(db).list()
 
 
@@ -33,7 +45,10 @@ async def update_me(
     if data.full_name is not None:
         user.full_name = data.full_name
     if data.password is not None:
+        from datetime import UTC, datetime
+
         user.hashed_password = hash_password(data.password)
+        user.last_password_changed = datetime.now(UTC).replace(tzinfo=None)
     await db.flush()
     return user
 

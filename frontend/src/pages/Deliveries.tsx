@@ -22,7 +22,14 @@ const FORMAT_TONE: Record<string, "neutral" | "brand" | "info"> = {
 const ACTIVE = "executing";
 
 function splitDate(iso: string) {
+  const tz = localStorage.getItem("af_timezone") || "local";
   const d = new Date(iso);
+  if (tz === "utc") {
+    return {
+      day: d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }),
+      time: d.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) + " UTC",
+    };
+  }
   return {
     day: d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
     time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }),

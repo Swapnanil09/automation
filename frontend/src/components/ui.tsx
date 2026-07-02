@@ -566,3 +566,17 @@ export function fmtRelative(iso: string | null) {
   if (d < 30) return `${d}d ago`;
   return fmtDate(iso);
 }
+
+export function Logo({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="22" fill="#4F46E5" />
+      <rect x="30" y="24" width="40" height="52" rx="4" fill="white" />
+      <line x1="38" y1="36" x2="62" y2="36" stroke="#4F46E5" stroke-width="4" stroke-linecap="round" />
+      <line x1="38" y1="48" x2="62" y2="48" stroke="#4F46E5" stroke-width="4" stroke-linecap="round" />
+      <circle cx="68" cy="68" r="16" fill="#10B981" stroke="white" stroke-width="3" />
+      <path d="M68 60 L68 68 L74 68" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" />
+    </svg>
+  );
+}
+

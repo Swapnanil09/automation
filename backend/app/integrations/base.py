@@ -23,6 +23,8 @@ class Attachment:
         return len(self.content)
 
 
+import uuid
+
 @dataclass
 class OutboundMessage:
     """A channel-agnostic message. Channels use what they support and ignore
@@ -33,6 +35,8 @@ class OutboundMessage:
     subject: str | None = None
     body_format: str = "text"  # text | html | markdown
     attachments: list[Attachment] = field(default_factory=list)
+    workspace_id: uuid.UUID | None = None
+    params: dict = field(default_factory=dict)
 
 
 @dataclass

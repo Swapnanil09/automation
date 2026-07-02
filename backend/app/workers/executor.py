@@ -42,7 +42,7 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _build_env(db: Session, workspace_id: uuid.UUID, wf_env: dict[str, str]) -> dict[str, str]:
+def _build_env(db: Session, workspace_id: uuid.UUID, wf_env: dict[str, str], run: WorkflowRun | None = None) -> dict[str, str]:
     """Minimal base env + variables + decrypted secrets + workflow env."""
     env: dict[str, str] = {
         "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
@@ -59,6 +59,24 @@ def _build_env(db: Session, workspace_id: uuid.UUID, wf_env: dict[str, str]) -> 
         except ValueError:
             continue
     env.update(wf_env)
+
+    if run and run.trigger == "auto-restart-alt":
+        try:
+            workflow = db.get(Workflow, run.workflow_id)
+            if workflow:
+                parsed = parse_workflow(workflow.definition, default_name=workflow.name)
+                sh = parsed.self_healing
+                if sh and sh.get("alternate_sources"):
+                    alts = sh.get("alternate_sources")
+                    if isinstance(alts, dict):
+                        env.update(alts)
+                    elif isinstance(alts, list):
+                        for alt in alts:
+                            if isinstance(alt, dict) and "key" in alt and "value" in alt:
+                                env[alt["key"]] = alt["value"]
+        except Exception:
+            pass
+
     return env
 
 
@@ -203,13 +221,24 @@ def _run_action(db: Session, step_row: StepRun, pstep, env: dict[str, str], run,
     lines: list[str] = []
     delivery: Delivery | None = None
     try:
-        conn, channel = _resolve_channel(
-            db, workspace_id, pstep.uses, pstep.with_.get("connection")
-        )
+        from app.integrations.registry import get_channel_class
+        channel_cls = get_channel_class(pstep.uses)
+        has_config = len(channel_cls.config_fields) > 0
+
+        if has_config:
+            conn, channel = _resolve_channel(
+                db, workspace_id, pstep.uses, pstep.with_.get("connection")
+            )
+            conn_name = conn.name
+        else:
+            conn = None
+            conn_name = ""
+            channel = build_channel(pstep.uses, {})
+
         message = compose_message(pstep.with_, env, workspace_id, pstep.uses)
 
         delivery = _new_delivery(run, workflow, pstep, step_row.name, status=EXECUTING)
-        delivery.connection_name = conn.name
+        delivery.connection_name = conn_name
         delivery.recipients = ", ".join(message.recipients)
         delivery.recipient_count = len(message.recipients)
         delivery.body_format = message.body_format
@@ -218,8 +247,12 @@ def _run_action(db: Session, step_row: StepRun, pstep, env: dict[str, str], run,
         db.add(delivery)
         db.commit()
 
-        lines.append(f"→ {pstep.uses} via connection '{conn.name}'")
-        lines.append(f"  to: {', '.join(message.recipients)}")
+        if conn_name:
+            lines.append(f"→ {pstep.uses} via connection '{conn_name}'")
+        else:
+            lines.append(f"→ {pstep.uses}")
+        if message.recipients:
+            lines.append(f"  to: {', '.join(message.recipients)}")
         if message.subject:
             lines.append(f"  subject: {message.subject}")
         if message.attachments:
@@ -269,7 +302,195 @@ def _run_action(db: Session, step_row: StepRun, pstep, env: dict[str, str], run,
         return 1
 
 
+def _evaluate_condition(
+    condition: str,
+    env: dict[str, str],
+    workspace_id: uuid.UUID,
+    steps_status: list[str]
+) -> bool:
+    if not condition:
+        return True
+
+    from app.core.storage import safe_join
+    import re
+
+    def _subst_val(text: str, env_dict: dict[str, str]) -> str:
+        VAR_RE = re.compile(r"\$\{(\w+)\}")
+        return VAR_RE.sub(lambda m: env_dict.get(m.group(1), m.group(0)), text)
+
+    def file_size(p: str) -> int:
+        try:
+            p_sub = _subst_val(p, env)
+            path = safe_join(workspace_id, p_sub)
+            if path.is_file():
+                return path.stat().st_size
+        except Exception:
+            pass
+        return 0
+
+    def file_exists(p: str) -> bool:
+        try:
+            p_sub = _subst_val(p, env)
+            return safe_join(workspace_id, p_sub).is_file()
+        except Exception:
+            return False
+
+    def line_count(p: str) -> int:
+        try:
+            p_sub = _subst_val(p, env)
+            path = safe_join(workspace_id, p_sub)
+            if path.is_file():
+                with open(path, "r", errors="ignore") as f:
+                    return sum(1 for _ in f)
+        except Exception:
+            pass
+        return 0
+
+    def success() -> bool:
+        return all(s in {StepStatus.SUCCESS.value, "success"} for s in steps_status)
+
+    def failure() -> bool:
+        return any(s in {StepStatus.FAILED.value, "failed"} for s in steps_status)
+
+    eval_globals = {
+        "file_size": file_size,
+        "file_exists": file_exists,
+        "line_count": line_count,
+        "success": success,
+        "failure": failure,
+        "env": env,
+        "True": True,
+        "False": False,
+    }
+
+    cond_clean = condition.strip()
+    if cond_clean == "success":
+        cond_clean = "success()"
+    elif cond_clean == "failure":
+        cond_clean = "failure()"
+
+    try:
+        result = eval(cond_clean, {"__builtins__": None}, eval_globals)
+        return bool(result)
+    except Exception as exc:
+        from app.core.logging import logger
+        logger.error(f"Error evaluating condition '{condition}': {exc}")
+        return False
+
+
+def _trigger_fallback(db: Session, run: WorkflowRun, fallback_slug: str) -> None:
+    from app.core.logging import logger
+    fallback_wf = db.execute(
+        select(Workflow).where(
+            Workflow.workspace_id == run.workspace_id,
+            Workflow.slug == fallback_slug
+        )
+    ).scalars().first()
+    
+    if not fallback_wf:
+        logger.warning(f"Fallback workflow '{fallback_slug}' not found in workspace {run.workspace_id}")
+        return
+        
+    if not fallback_wf.enabled:
+        logger.warning(f"Fallback workflow '{fallback_slug}' is disabled")
+        return
+
+    try:
+        parsed = parse_workflow(fallback_wf.definition, default_name=fallback_wf.name)
+    except Exception as exc:
+        logger.error(f"Failed to parse fallback workflow definition: {exc}")
+        return
+
+    from sqlalchemy import func
+    stmt = select(func.coalesce(func.max(WorkflowRun.run_number), 0)).where(WorkflowRun.workflow_id == fallback_wf.id)
+    max_num = db.execute(stmt).scalar() or 0
+    number = max_num + 1
+
+    fallback_run = WorkflowRun(
+        workflow_id=fallback_wf.id,
+        workspace_id=fallback_wf.workspace_id,
+        run_number=number,
+        status=RunStatus.QUEUED.value,
+        trigger="fallback",
+        triggered_by_id=run.triggered_by_id,
+    )
+    db.add(fallback_run)
+    db.commit()
+
+    for idx, step in enumerate(parsed.steps):
+        db.add(
+            StepRun(run_id=fallback_run.id, name=step.name, step_index=idx, command=step.command_display)
+        )
+    db.commit()
+
+    from app.workers.tasks import run_workflow
+    async_result = run_workflow.delay(str(fallback_run.id))
+    fallback_run.celery_task_id = async_result.id
+    db.commit()
+    logger.info(f"Triggered fallback workflow '{fallback_wf.name}' run #{number}")
+
+
+def _handle_self_healing(db: Session, run: WorkflowRun, parsed_wf) -> None:
+    from app.core.logging import logger
+    sh = parsed_wf.self_healing
+    if not sh or not sh.get("auto_restart"):
+        return
+
+    max_restarts = int(sh.get("max_restarts", 3))
+    
+    # Count consecutive failures of this workflow
+    stmt = select(WorkflowRun).where(
+        WorkflowRun.workflow_id == run.workflow_id
+    ).order_by(WorkflowRun.run_number.desc()).limit(max_restarts + 2)
+    recent = list(db.execute(stmt).scalars())
+
+    consec_failures = 0
+    for r in recent:
+        if r.status == RunStatus.FAILED.value:
+            consec_failures += 1
+        else:
+            break
+
+    if consec_failures < max_restarts:
+        from sqlalchemy import func
+        stmt = select(func.coalesce(func.max(WorkflowRun.run_number), 0)).where(WorkflowRun.workflow_id == run.workflow_id)
+        max_num = db.execute(stmt).scalar() or 0
+        number = max_num + 1
+
+        trigger_name = "auto-restart"
+        if sh.get("retry_alternate_sources") and consec_failures > 0:
+            trigger_name = "auto-restart-alt"
+
+        new_run = WorkflowRun(
+            workflow_id=run.workflow_id,
+            workspace_id=run.workspace_id,
+            run_number=number,
+            status=RunStatus.QUEUED.value,
+            trigger=trigger_name,
+            triggered_by_id=run.triggered_by_id,
+        )
+        db.add(new_run)
+        db.commit()
+
+        for idx, step in enumerate(parsed_wf.steps):
+            db.add(
+                StepRun(run_id=new_run.id, name=step.name, step_index=idx, command=step.command_display)
+            )
+        db.commit()
+
+        from app.workers.tasks import run_workflow
+        prio_map = {"High": 9, "Medium": 5, "Low": 1}
+        workflow = db.get(Workflow, run.workflow_id)
+        prio_val = prio_map.get(workflow.priority if workflow else "Medium", 5)
+        
+        async_result = run_workflow.apply_async(args=[str(new_run.id)], priority=prio_val)
+        new_run.celery_task_id = async_result.id
+        db.commit()
+        logger.info(f"Self-healing: queued auto-restart run #{number} for workflow {run.workflow_id} (failure {consec_failures}/{max_restarts})")
+
+
 def execute_run(db: Session, run_id: uuid.UUID) -> str:
+
     """Drive a full workflow run. Returns the final run status string."""
     run = db.get(WorkflowRun, run_id)
     if run is None:
@@ -309,8 +530,9 @@ def execute_run(db: Session, run_id: uuid.UUID) -> str:
         _notify(db, run, workflow, ok=False)
         return run.status
 
-    env = _build_env(db, run.workspace_id, parsed.env)
+    env = _build_env(db, run.workspace_id, parsed.env, run)
     failed = False
+    steps_status = []
 
     for idx, pstep in enumerate(parsed.steps):
         step_row = step_rows[idx] if idx < len(step_rows) else None
@@ -324,18 +546,34 @@ def execute_run(db: Session, run_id: uuid.UUID) -> str:
         if run.status == RunStatus.CANCELLED.value:
             step_row.status = StepStatus.SKIPPED.value
             db.commit()
+            steps_status.append("skipped")
             continue
 
         if failed:
             step_row.status = StepStatus.SKIPPED.value
             db.commit()
+            steps_status.append("skipped")
             continue
 
         step_env = {**env, **pstep.env}
+        
+        # Evaluate step condition
+        if pstep.if_:
+            should_run = _evaluate_condition(pstep.if_, step_env, run.workspace_id, steps_status)
+            if not should_run:
+                step_row.status = StepStatus.SKIPPED.value
+                db.commit()
+                steps_status.append("skipped")
+                continue
+
         if pstep.is_action:
             code = _run_action(db, step_row, pstep, step_env, run, workflow)
         else:
             code = _run_step(db, step_row, pstep.run, step_env, cwd)
+            
+        status = "success" if code == 0 else "failed"
+        steps_status.append(status)
+        
         if code != 0 and not pstep.continue_on_error:
             failed = True
             run.error = f"Step '{pstep.name}' failed with exit code {code}"
@@ -349,6 +587,12 @@ def execute_run(db: Session, run_id: uuid.UUID) -> str:
     run.finished_at = _now()
     db.commit()
     _notify(db, run, workflow, ok=(final == RunStatus.SUCCESS.value))
+    
+    if final == RunStatus.FAILED.value:
+        _handle_self_healing(db, run, parsed)
+        if parsed.fallback_workflow:
+            _trigger_fallback(db, run, parsed.fallback_workflow)
+        
     return final
 
 
@@ -371,7 +615,32 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
         )
         db.commit()
 
-    if not ok and workflow.email_on_failure and ws:
+    should_email = not ok
+    if should_email and workflow.email_on_failure and ws:
+        try:
+            parsed = parse_workflow(workflow.definition, default_name=workflow.name)
+            sh = parsed.self_healing
+            if sh and sh.get("auto_restart"):
+                max_restarts = int(sh.get("max_restarts", 3))
+                stmt = select(WorkflowRun).where(
+                    WorkflowRun.workflow_id == run.workflow_id
+                ).order_by(WorkflowRun.run_number.desc()).limit(max_restarts + 2)
+                recent = list(db.execute(stmt).scalars())
+
+                consec_failures = 0
+                for r in recent:
+                    if r.status == RunStatus.FAILED.value:
+                        consec_failures += 1
+                    else:
+                        break
+
+                if consec_failures < max_restarts:
+                    should_email = False
+        except Exception:
+            pass
+
+    if should_email and workflow.email_on_failure and ws:
+
         from app.models.user import User
 
         target_user = None
@@ -432,7 +701,6 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
                         body=body,
                         body_format="text",
                         attachments=[],
-
                     )
                     channel.send(msg)
                     logger.info("Workflow failure alert email sent to %s", target_user.email)

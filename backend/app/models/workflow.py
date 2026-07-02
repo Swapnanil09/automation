@@ -34,6 +34,13 @@ class Workflow(UUIDMixin, TimestampMixin, Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    priority: Mapped[str] = mapped_column(String(20), default="Medium", nullable=False)
+    blackout_start: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    blackout_end: Mapped[str | None] = mapped_column(String(5), nullable=True)
+
 
     runs: Mapped[list["WorkflowRun"]] = relationship(
         back_populates="workflow", cascade="all, delete-orphan"
@@ -110,3 +117,40 @@ class StepRun(UUIDMixin, TimestampMixin, Base):
     logs: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     run: Mapped["WorkflowRun"] = relationship(back_populates="steps")
+
+
+class WorkflowShare(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "workflow_shares"
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    team_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+
+class WorkflowComment(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "workflow_comments"
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class ActivityLog(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "activity_logs"
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    action: Mapped[str] = mapped_column(String(80), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+

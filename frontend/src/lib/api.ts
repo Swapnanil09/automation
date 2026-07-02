@@ -2,21 +2,45 @@ import type {
   BranchInfo, ChannelCatalogItem, CommitInfo, Connection, ConnectionTestResult,
   DashboardStats, Delivery, DirListing, FileContent, FileNode, GitStatus, Member,
   Notification, RecentRun, Secret, Tokens, User, Variable, Workflow, WorkflowRun, Workspace,
+  WorkflowComment, WorkflowShare, ActivityLog, AdminStats, WorkerInfo,
 } from "./types";
+
 
 const BASE = "/api/v1";
 const ACCESS = "af_access";
 const REFRESH = "af_refresh";
 
 export const tokenStore = {
-  get access() { return localStorage.getItem(ACCESS); },
-  get refresh() { return localStorage.getItem(REFRESH); },
-  set(t: Tokens) {
-    localStorage.setItem(ACCESS, t.access_token);
-    localStorage.setItem(REFRESH, t.refresh_token);
+  get access() {
+    return localStorage.getItem(ACCESS) || sessionStorage.getItem(ACCESS);
   },
-  clear() { localStorage.removeItem(ACCESS); localStorage.removeItem(REFRESH); },
+  get refresh() {
+    return localStorage.getItem(REFRESH) || sessionStorage.getItem(REFRESH);
+  },
+  set(t: Tokens, remember = true) {
+    if (remember) {
+      localStorage.setItem("af_remember", "true");
+      localStorage.setItem(ACCESS, t.access_token);
+      localStorage.setItem(REFRESH, t.refresh_token);
+      sessionStorage.removeItem(ACCESS);
+      sessionStorage.removeItem(REFRESH);
+    } else {
+      localStorage.setItem("af_remember", "false");
+      sessionStorage.setItem(ACCESS, t.access_token);
+      sessionStorage.setItem(REFRESH, t.refresh_token);
+      localStorage.removeItem(ACCESS);
+      localStorage.removeItem(REFRESH);
+    }
+  },
+  clear() {
+    localStorage.removeItem(ACCESS);
+    localStorage.removeItem(REFRESH);
+    localStorage.removeItem("af_remember");
+    sessionStorage.removeItem(ACCESS);
+    sessionStorage.removeItem(REFRESH);
+  },
 };
+
 
 export class ApiError extends Error {
   status: number;
@@ -89,16 +113,20 @@ const qs = (params: Record<string, string | number | boolean | undefined>) => {
 
 export const api = {
   auth: {
-    async login(username: string, password: string): Promise<Tokens> {
+    async login(username: string, password: string, remember = true): Promise<Tokens> {
       const form = new URLSearchParams({ username, password });
       const t = await request<Tokens>("/auth/login", { method: "POST", form });
-      tokenStore.set(t);
+      tokenStore.set(t, remember);
       return t;
     },
     register: (body: { email: string; username: string; password: string; full_name?: string }) =>
       request<User>("/auth/register", { method: "POST", body }),
     me: () => request<User>("/auth/me"),
     logout: () => tokenStore.clear(),
+    forgotPassword: (email: string) =>
+      request<{ detail: string }>("/auth/forgot-password", { method: "POST", body: { email } }),
+    resetPassword: (body: { token: string; new_password: string }) =>
+      request<{ detail: string }>("/auth/reset-password", { method: "POST", body }),
   },
   users: {
     list: () => request<User[]>("/users"),
@@ -182,6 +210,22 @@ export const api = {
       request<WorkflowRun>(`/workspaces/${ws}/workflows/${id}/runs/${runId}`),
     cancel: (ws: string, id: string, runId: string) =>
       request<WorkflowRun>(`/workspaces/${ws}/workflows/${id}/runs/${runId}/cancel`, { method: "POST" }),
+    replay: (ws: string, id: string, runId: string) =>
+      request<WorkflowRun>(`/workspaces/${ws}/workflows/${id}/runs/${runId}/replay`, { method: "POST" }),
+    comments: (ws: string, id: string) =>
+      request<WorkflowComment[]>(`/workspaces/${ws}/workflows/${id}/comments`),
+    addComment: (ws: string, id: string, body: { content: string }) =>
+      request<WorkflowComment>(`/workspaces/${ws}/workflows/${id}/comments`, { method: "POST", body }),
+    shares: (ws: string, id: string) =>
+      request<WorkflowShare[]>(`/workspaces/${ws}/workflows/${id}/shares`),
+    share: (ws: string, id: string, body: { user_id?: string | null; team_name?: string | null }) =>
+      request<WorkflowShare>(`/workspaces/${ws}/workflows/${id}/shares`, { method: "POST", body }),
+    deleteShare: (ws: string, id: string, shareId: string) =>
+      request<{ detail: string }>(`/workspaces/${ws}/workflows/${id}/shares/${shareId}`, { method: "DELETE" }),
+    transfer: (ws: string, id: string, body: { new_owner_id: string }) =>
+      request<Workflow>(`/workspaces/${ws}/workflows/${id}/transfer`, { method: "POST", body }),
+    checkConflicts: (ws: string, cron: string, workflowId?: string) =>
+      request<{ conflicts: string[] }>(`/workspaces/${ws}/workflows/check-conflicts` + qs({ cron, workflow_id: workflowId }), { method: "POST" }),
   },
   notifications: {
     list: (unreadOnly = false) => request<Notification[]>(`/notifications${qs({ unread_only: unreadOnly })}`),
@@ -211,6 +255,19 @@ export const api = {
   dashboard: {
     stats: () => request<DashboardStats>("/dashboard/stats"),
     runs: (params: { limit?: number } = {}) => request<RecentRun[]>("/dashboard/runs" + qs(params)),
+    heatmap: (ws: string) =>
+      request<{ day: number; hour: number; count: number }[]>(`/workspaces/${ws}/workflows/dashboard/heatmap`),
+    activity: (ws: string) =>
+      request<ActivityLog[]>(`/workspaces/${ws}/workflows/activity`),
+  },
+  admin: {
+    stats: () => request<AdminStats>("/admin/stats"),
+    workers: () => request<WorkerInfo[]>("/admin/workers"),
+    restartWorker: (name: string) =>
+      request<{ detail: string }>(`/admin/workers/${name}/restart`, { method: "POST" }),
+    createUser: (body: any) => request<User>("/users", { method: "POST", body }),
+    listUsers: () => request<User[]>("/users"),
   },
 };
+
 

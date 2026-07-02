@@ -98,7 +98,11 @@ def compose_message(
     if not isinstance(with_params, dict):
         raise ChannelError("Step 'with' must be a mapping")
 
-    recipients = _recipients(with_params.get("to"), env, workspace_id, channel_type)
+    if channel_type not in {"sql", "excel", "compress", "sftp"}:
+        recipients = _recipients(with_params.get("to"), env, workspace_id, channel_type)
+    else:
+        recipients = []
+
 
     body_raw = (
         with_params.get("body") or with_params.get("text") or with_params.get("message") or ""
@@ -120,6 +124,8 @@ def compose_message(
         subject=subject,
         body_format=fmt,
         attachments=attachments,
+        workspace_id=workspace_id,
+        params=with_params,
     )
 
 

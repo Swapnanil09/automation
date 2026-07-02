@@ -70,3 +70,87 @@ class AuthService:
         if user is None or not user.is_active:
             raise UnauthorizedError("User not found or disabled")
         return self.issue_tokens(user)
+
+    async def forgot_password(self, email: str) -> None:
+        user = await self.users.get_by_email(email.lower())
+        if not user:
+            return
+
+        import secrets
+        from datetime import UTC, datetime, timedelta
+
+        from app.core.logging import logger
+
+        token = secrets.token_urlsafe(32)
+        user.password_reset_token = token
+        user.password_reset_expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(
+            minutes=10
+        )
+        await self.db.flush()
+        await self.db.commit()
+
+        reset_link = f"http://localhost:5173/reset-password?token={token}"
+        logger.info(
+            "\n" + "=" * 80 + f"\n[PASSWORD RESET REQUEST] User: {user.username} ({user.email})\n"
+            f"Reset Link: {reset_link}\n" + "=" * 80
+        )
+
+        try:
+            from sqlalchemy import select
+
+            from app.integrations.base import OutboundMessage
+            from app.integrations.registry import build_channel
+            from app.models.connection import Connection
+            from app.services.connection_service import _decrypt_config
+
+            stmt = select(Connection).where(
+                Connection.type == "gmail", Connection.enabled.is_(True)
+            )
+            res = await self.db.execute(stmt)
+            conn = res.scalars().first()
+            if conn:
+                decrypted = _decrypt_config(conn)
+                channel = build_channel("gmail", decrypted)
+                msg = OutboundMessage(
+                    recipients=[user.email],
+                    subject="Report Scheduler - Password Reset Request",
+                    body=(
+                        f"Hello {user.full_name or user.username},\n\n"
+                        f"You requested a password reset for your Report Scheduler account.\n"
+                        f"Please click the link below to reset your password. "
+                        f"This link is valid for 10 minutes:\n\n"
+                        f"{reset_link}\n\n"
+                        f"If you did not request this, you can ignore this email.\n"
+                    ),
+                    body_format="text",
+                    attachments=[],
+                )
+                channel.send(msg)
+                logger.info("Sent password reset email successfully.")
+        except Exception as exc:
+            logger.error("Failed to send password reset email: %s", exc)
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        from datetime import UTC, datetime
+
+        from sqlalchemy import select
+
+        from app.core.exceptions import AppException
+
+        stmt = select(User).where(User.password_reset_token == token)
+        res = await self.db.execute(stmt)
+        user = res.scalars().first()
+
+        if not user:
+            raise AppException("Invalid or expired password reset token", status_code=400)
+
+        now = datetime.now(UTC).replace(tzinfo=None)
+        if user.password_reset_expires_at is None or user.password_reset_expires_at < now:
+            raise AppException("Invalid or expired password reset token", status_code=400)
+
+        user.hashed_password = hash_password(new_password)
+        user.password_reset_token = None
+        user.password_reset_expires_at = None
+        user.last_password_changed = now
+        await self.db.flush()
+        await self.db.commit()

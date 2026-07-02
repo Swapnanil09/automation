@@ -155,7 +155,7 @@ async def test_connection_crud_and_secret_masking(client):
     h, wsid = await _owner(client, "connowner")
 
     cat = (await client.get(f"/api/v1/workspaces/{wsid}/connections/catalog", headers=h)).json()
-    assert {c["type"] for c in cat} == {"gmail", "telegram", "whatsapp"}
+    assert {c["type"] for c in cat} == {"gmail", "telegram", "whatsapp", "sql", "sftp"}
 
     created = await client.post(
         f"/api/v1/workspaces/{wsid}/connections",
@@ -343,9 +343,10 @@ async def test_delivery_log_records_successful_send(client, db_sync, monkeypatch
 
     assert execute_run(db_sync, uuid.UUID(run["id"])) == "success"
 
-    # global delivery feed
-    feed = (await client.get("/api/v1/deliveries", headers=h)).json()
+    # workspace delivery feed
+    feed = (await client.get(f"/api/v1/workspaces/{wsid}/deliveries", headers=h)).json()
     assert len(feed) >= 1
+
     d = feed[0]
     assert d["status"] == "delivered"
     assert d["channel"] == "telegram"

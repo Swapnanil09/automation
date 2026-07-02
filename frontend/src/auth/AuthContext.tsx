@@ -5,7 +5,7 @@ import type { User } from "../lib/types";
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, remember?: boolean) => Promise<void>;
   register: (email: string, username: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => authEvents.setHandler(() => {});
   }, []);
 
-  async function login(username: string, password: string) {
-    await api.auth.login(username, password);
+  async function login(username: string, password: string, remember = true) {
+    await api.auth.login(username, password, remember);
     setUser(await api.auth.me());
   }
 

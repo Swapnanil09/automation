@@ -24,15 +24,35 @@ def ping() -> str:
     return "pong"
 
 
-@celery_app.task(name="workflow.run", bind=True)
+@celery_app.task(name="workflow.run", bind=True, max_retries=3)
 def run_workflow(self, run_id: str) -> str:  # noqa: ANN001
-    """Execute a single workflow run by id."""
+    """Execute a single workflow run by id with automatic self-healing restarts."""
     import uuid
+
+    from celery.exceptions import MaxRetriesExceededError
+
+    from app.core.enums import RunStatus
 
     db = SessionLocal()
     try:
         status = execute_run(db, uuid.UUID(run_id))
         logger.info("Run %s finished: %s", run_id, status)
+
+        # If the workflow execution failed, trigger self-healing retry
+        if status == RunStatus.FAILED.value:
+            try:
+                countdown = 5 ** (self.request.retries + 1)
+                logger.warning(
+                    "Workflow run %s failed. Attempting self-healing restart "
+                    "(retry %d/3) in %ds...",
+                    run_id,
+                    self.request.retries + 1,
+                    countdown,
+                )
+                self.retry(countdown=countdown)
+            except MaxRetriesExceededError:
+                logger.error("Max retries exceeded for workflow run %s. No more retries.", run_id)
+
         return status
     finally:
         db.close()
@@ -141,6 +161,25 @@ def dispatch_connections(db: Session, now: datetime) -> int:
     return fired
 
 
+def is_in_blackout(now_tz: datetime, start_str: str | None, end_str: str | None) -> bool:
+    if not start_str or not end_str:
+        return False
+    try:
+        from datetime import time
+        sh, sm = map(int, start_str.split(":"))
+        eh, em = map(int, end_str.split(":"))
+        start_t = time(sh, sm)
+        end_t = time(eh, em)
+        now_t = now_tz.time()
+        if start_t <= end_t:
+            return start_t <= now_t <= end_t
+        else:
+            return now_t >= start_t or now_t <= end_t
+    except Exception as exc:
+        logger.error("Error parsing blackout window %s-%s: %s", start_str, end_str, exc)
+        return False
+
+
 @celery_app.task(name="schedule.dispatch")
 def dispatch_scheduled() -> int:
     """Fire any cron-scheduled workflows or connections that are due in this tick window."""
@@ -179,6 +218,15 @@ def dispatch_scheduled() -> int:
 
             # Localize now to the target timezone
             now_tz = now.astimezone(tz)
+            
+            # Enforce blackout window check
+            if is_in_blackout(now_tz, wf.blackout_start, wf.blackout_end):
+                logger.info(
+                    "Skipping scheduled execution of '%s' - currently in blackout window (%s to %s)",
+                    wf.name, wf.blackout_start, wf.blackout_end
+                )
+                continue
+
             prev_fire = croniter(cron, now_tz).get_prev(datetime)
             if prev_fire.tzinfo is None:
                 prev_fire = prev_fire.replace(tzinfo=tz)
@@ -190,9 +238,11 @@ def dispatch_scheduled() -> int:
                 continue
             run = create_run_sync(db, wf, trigger="schedule")
             if run is not None:
-                run_workflow.delay(str(run.id))
+                prio_map = {"High": 9, "Medium": 5, "Low": 1}
+                prio_val = prio_map.get(wf.priority, 5)
+                run_workflow.apply_async(args=[str(run.id)], priority=prio_val)
                 fired += 1
-                logger.info("Scheduled run #%s queued for '%s'", run.run_number, wf.name)
+                logger.info("Scheduled run #%s queued for '%s' with priority %s", run.run_number, wf.name, wf.priority)
     finally:
         db.close()
     return fired

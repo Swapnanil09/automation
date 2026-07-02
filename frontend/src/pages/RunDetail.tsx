@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronLeft, Loader2, Minus, X, Download } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Check, ChevronDown, ChevronLeft, Loader2, Minus, X, Download, RotateCcw } from "lucide-react";
 import { api } from "../lib/api";
 import type { StepRun, WorkflowRun } from "../lib/types";
-import { Badge, Button, ErrorText, Skeleton, StatusPill, cn, fmtDate } from "../components/ui";
+import { Badge, Button, ErrorText, Skeleton, StatusPill, cn, fmtDate, useToast } from "../components/ui";
+
 
 const ACTIVE = new Set(["queued", "running"]);
 
@@ -22,6 +23,8 @@ function fmtDuration(start: string | null, end: string | null): string | null {
 
 export default function RunDetail() {
   const { wsId = "", wfId = "", runId = "" } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [run, setRun] = useState<WorkflowRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,6 +45,17 @@ export default function RunDetail() {
   async function cancel() {
     try { setRun(await api.workflows.cancel(wsId, wfId, runId)); } catch { /* ignore */ }
   }
+
+  async function replay() {
+    try {
+      const r = await api.workflows.replay(wsId, wfId, runId);
+      toast.success(`Replaying run #${run?.run_number || ""} — new run #${r.run_number} queued`);
+      navigate(`/workspaces/${wsId}/workflows/${wfId}/runs/${r.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Replay failed");
+    }
+  }
+
 
   if (error && !run) return <p className="text-danger">{error}</p>;
   if (!run) return (
@@ -96,9 +110,15 @@ export default function RunDetail() {
               <Download className="h-4 w-4" /> Download all logs
             </Button>
           )}
+          {!isActive && (
+            <Button variant="secondary" onClick={replay}>
+              <RotateCcw className="h-4 w-4" /> Replay run
+            </Button>
+          )}
           {isActive && <Button variant="danger" onClick={cancel}>Cancel run</Button>}
         </div>
       </div>
+
 
       {run.error && <div className="mb-4"><ErrorText>{run.error}</ErrorText></div>}
 

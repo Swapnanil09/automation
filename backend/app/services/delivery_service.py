@@ -69,6 +69,7 @@ class DeliveryService:
         status: str | None,
         channel: str | None,
         workspace_id: uuid.UUID | None,
+        workflow_ids: list[uuid.UUID] | None = None,
     ) -> list[DeliveryRead]:
         if not ws_ids:
             return []
@@ -83,6 +84,8 @@ class DeliveryService:
             stmt = stmt.where(Delivery.status == status)
         if channel:
             stmt = stmt.where(Delivery.channel == channel)
+        if workflow_ids is not None:
+            stmt = stmt.where(Delivery.workflow_id.in_(workflow_ids))
         stmt = stmt.order_by(Delivery.created_at.desc()).limit(limit)
         rows = (await self.db.execute(stmt)).all()
         return [_to_read(d, slug) for d, slug in rows]
@@ -109,7 +112,9 @@ class DeliveryService:
         limit: int = 50,
         status: str | None = None,
         channel: str | None = None,
+        workflow_ids: list[uuid.UUID] | None = None,
     ) -> list[DeliveryRead]:
         return await self._list(
-            [workspace_id], limit=limit, status=status, channel=channel, workspace_id=None
+            [workspace_id], limit=limit, status=status, channel=channel, workspace_id=None, workflow_ids=workflow_ids
         )
+

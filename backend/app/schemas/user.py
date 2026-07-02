@@ -17,6 +17,7 @@ class UserRead(ORMModel):
     is_superuser: bool
     role: str
     created_at: datetime
+    last_password_changed: datetime | None = None
 
 
 class UserUpdate(BaseModel):

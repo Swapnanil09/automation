@@ -6,11 +6,19 @@ from app.integrations.base import Channel, ChannelError
 from app.integrations.gmail import GmailChannel
 from app.integrations.telegram import TelegramChannel
 from app.integrations.whatsapp import WhatsAppChannel
+from app.integrations.sql import SqlChannel
+from app.integrations.excel import ExcelChannel
+from app.integrations.compress import CompressChannel
+from app.integrations.sftp import SftpChannel
 
 _CHANNELS: dict[str, type[Channel]] = {
     GmailChannel.type: GmailChannel,
     TelegramChannel.type: TelegramChannel,
     WhatsAppChannel.type: WhatsAppChannel,
+    SqlChannel.type: SqlChannel,
+    ExcelChannel.type: ExcelChannel,
+    CompressChannel.type: CompressChannel,
+    SftpChannel.type: SftpChannel,
 }
 
 
@@ -35,9 +43,12 @@ def catalog() -> list[dict]:
     """Static description of every channel for the settings UI."""
     items: list[dict] = []
     for cls in _CHANNELS.values():
+        if not cls.config_fields:
+            continue
         items.append(
             {
                 "type": cls.type,
+
                 "label": cls.label,
                 "send_hint": cls.send_hint,
                 "supports_attachments": cls.supports_attachments,

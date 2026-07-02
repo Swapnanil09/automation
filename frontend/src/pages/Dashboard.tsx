@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar, CheckCircle2, Download, Mail, MessageCircle, Play,
-  Send, TrendingUp, XCircle, X
+  Send, TrendingUp, XCircle, X, Globe
 } from "lucide-react";
 import { api } from "../lib/api";
 import type { DashboardStats, Delivery, RecentRun } from "../lib/types";
@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [chartView, setChartView] = useState<"all" | "success" | "failed" | "executing">("all");
   const [zoom, setZoom] = useState<number>(1);
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
+  const [timezone, setTimezone] = useState(() => localStorage.getItem("af_timezone") || "local");
 
 
   // Date range state (default to past 7 days)
@@ -112,27 +113,39 @@ export default function Dashboard() {
       let key = "";
       let label = "";
 
+      const tz = timezone;
+      
+      let year = dt.getFullYear();
+      let month = String(dt.getMonth() + 1).padStart(2, "0");
+      let dateNum = String(dt.getDate()).padStart(2, "0");
+      let hours = String(dt.getHours()).padStart(2, "0");
+      let minutes = String(dt.getMinutes()).padStart(2, "0");
+      let seconds = String(dt.getSeconds()).padStart(2, "0");
+      
+      if (tz === "utc") {
+        year = dt.getUTCFullYear();
+        month = String(dt.getUTCMonth() + 1).padStart(2, "0");
+        dateNum = String(dt.getUTCDate()).padStart(2, "0");
+        hours = String(dt.getUTCHours()).padStart(2, "0");
+        minutes = String(dt.getUTCMinutes()).padStart(2, "0");
+        seconds = String(dt.getUTCSeconds()).padStart(2, "0");
+      }
+
       if (granularity === "sec") {
-        // Round to nearest second
-        const secStr = dt.toISOString().split(".")[0]; // YYYY-MM-DDTHH:MM:SS
-        key = secStr;
-        label = secStr.split("T")[1]; // HH:MM:SS
+        key = `${year}-${month}-${dateNum}T${hours}:${minutes}:${seconds}`;
+        label = `${hours}:${minutes}:${seconds}`;
       } else if (granularity === "min") {
-        const minStr = dt.toISOString().substring(0, 16); // YYYY-MM-DDTHH:MM
-        key = minStr;
-        label = minStr.split("T")[1]; // HH:MM
+        key = `${year}-${month}-${dateNum}T${hours}:${minutes}`;
+        label = `${hours}:${minutes}`;
       } else if (granularity === "hour") {
-        const hrStr = dt.toISOString().substring(0, 13); // YYYY-MM-DDTHH
-        key = hrStr;
-        label = hrStr.split("T")[1] + ":00"; // HH:00
+        key = `${year}-${month}-${dateNum}T${hours}`;
+        label = `${hours}:00`;
       } else if (granularity === "day") {
-        const dayStr = dt.toISOString().split("T")[0]; // YYYY-MM-DD
-        key = dayStr;
-        label = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        key = `${year}-${month}-${dateNum}`;
+        label = dt.toLocaleDateString(tz === "utc" ? "en-US" : undefined, { timeZone: tz === "utc" ? "UTC" : undefined, month: "short", day: "numeric" });
       } else if (granularity === "month") {
-        const monthStr = dt.toISOString().substring(0, 7); // YYYY-MM
-        key = monthStr;
-        label = dt.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+        key = `${year}-${month}`;
+        label = dt.toLocaleDateString(tz === "utc" ? "en-US" : undefined, { timeZone: tz === "utc" ? "UTC" : undefined, month: "short", year: "numeric" });
       }
 
       const existing = groupMap.get(key);
@@ -300,6 +313,25 @@ export default function Dashboard() {
           >
             <Download className="h-4 w-4" /> Export CSV
           </Button>
+
+          <div className="flex items-center gap-1.5 border-l border-slate-100 pl-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+              <Globe className="h-3.5 w-3.5 text-brand" /> Timezone:
+            </span>
+            <select
+              value={timezone}
+              onChange={(e) => {
+                const newTz = e.target.value;
+                localStorage.setItem("af_timezone", newTz);
+                setTimezone(newTz);
+                toast.info(`Dashboard timezone updated to ${newTz === "utc" ? "UTC" : "Local Browser Time"}`);
+              }}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              <option value="local">Local Time</option>
+              <option value="utc">UTC</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -707,8 +739,8 @@ export default function Dashboard() {
               <TBody>
                 {filteredDeliveries.map((d) => {
                   const dt = new Date(d.created_at);
-                  const formattedDate = dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-                  const formattedTime = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                  const formattedDate = dt.toLocaleDateString(timezone === "utc" ? "en-US" : undefined, { timeZone: timezone === "utc" ? "UTC" : undefined, month: "short", day: "numeric", year: "numeric" });
+                  const formattedTime = dt.toLocaleTimeString(timezone === "utc" ? "en-US" : undefined, { timeZone: timezone === "utc" ? "UTC" : undefined, hour: "2-digit", minute: "2-digit" }) + (timezone === "utc" ? " UTC" : "");
                   const Icon = CHANNEL_ICON[d.channel] ?? Send;
 
                   return (

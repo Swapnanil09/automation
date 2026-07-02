@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Workflow } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../lib/api";
-import { Button, ErrorText, Field, Input } from "../components/ui";
+import { Button, ErrorText, Field, Input, Logo } from "../components/ui";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
     setError(null); setBusy(true);
-    try { await login(username, password); navigate("/"); }
+    try { await login(username, password, remember); navigate("/"); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Login failed"); }
     finally { setBusy(false); }
   }
@@ -31,9 +31,9 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-[400px]">
         <div className="mb-6 flex flex-col items-center">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-brand shadow-xl mb-3 transition-transform duration-300 hover:scale-105">
-            <Workflow className="h-5 w-5" />
+            <Logo className="h-5 w-5" />
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-white leading-none">AutoFlow</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-white leading-none">Report Scheduler</h2>
           <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Self-Hosted Automation</p>
         </div>
 
@@ -63,13 +63,28 @@ export default function Login() {
                 className="!bg-slate-950 !border-slate-800/80 focus:!border-brand focus:!ring-brand/15 focus:!ring-2 !text-white placeholder:!text-slate-600 !h-10 rounded-lg text-sm transition-all"
               />
             </Field>
+
+            <div className="flex items-center justify-between select-none">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-800 bg-slate-950 text-brand focus:ring-brand/15 focus:ring-offset-0 focus:ring-2 focus:outline-none accent-indigo-600"
+                />
+                Remember me
+              </label>
+              <Link to="/forgot-password" className="text-xs font-semibold text-brand hover:text-brand/90 transition-colors">
+                Forgot password?
+              </Link>
+            </div>
             
             {error && <ErrorText>{error}</ErrorText>}
             
             <Button
               type="submit"
               disabled={busy}
-              className="w-full !h-10 mt-2 font-semibold text-white !bg-brand hover:!bg-brand/90 active:scale-[0.98] transition-all rounded-lg text-sm flex items-center justify-center shadow-lg shadow-brand/10 border-0"
+              className="w-full !h-10 mt-4 font-semibold text-white !bg-brand hover:!bg-brand/90 active:scale-[0.98] transition-all rounded-lg text-sm flex items-center justify-center shadow-lg shadow-brand/10 border-0"
             >
               {busy ? "Signing in…" : "Sign in"}
             </Button>
@@ -77,7 +92,7 @@ export default function Login() {
         </div>
         
         <p className="mt-5 text-center text-xs text-slate-500">
-          New to AutoFlow?{" "}
+          New to Report Scheduler?{" "}
           <Link to="/register" className="font-semibold text-slate-300 hover:text-white underline decoration-slate-600 hover:decoration-slate-400 underline-offset-4 transition-colors">
             Create an account
           </Link>
@@ -86,4 +101,5 @@ export default function Login() {
     </div>
   );
 }
+
 

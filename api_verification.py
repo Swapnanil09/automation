@@ -243,10 +243,11 @@ steps:
         print("  [OK] Retrieve Dashboard Stats data")
         
         # List delivery logs
-        resp = requests.get(f"{BASE_URL}/api/v1/deliveries", headers=headers)
+        resp = requests.get(f"{BASE_URL}/api/v1/workspaces/{ws_id}/deliveries", headers=headers)
         assert resp.status_code in {200, 201}, f"List delivery logs failed: {resp.status_code} - {resp.text}"
         print(f"  [OK] Get Logs list: (Records returned: {len(resp.json())})")
     except Exception as exc:
+
         print(f"  [FAIL] Logs / Dashboard Verification Failed: {exc}")
         return
 

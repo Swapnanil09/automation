@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import type { Member } from "../../lib/types";
 import {
   Avatar, Badge, Button, Card, ErrorText, Field, IconButton, Input, Modal, Select, useToast,
+  fmtRelative,
 } from "../../components/ui";
 
 export default function MembersTab({ wsId, canManage }: { wsId: string; canManage: boolean }) {
@@ -42,7 +43,13 @@ export default function MembersTab({ wsId, canManage }: { wsId: string; canManag
                 <Avatar name={label} />
                 <div>
                   <p className="text-sm font-medium text-ink">{label}</p>
-                  <p className="text-xs text-muted">{m.user.email}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted flex-wrap">
+                    <span>{m.user.email}</span>
+                    <span>•</span>
+                    <span title={m.user.last_password_changed ? new Date(m.user.last_password_changed).toLocaleString() : "Never (never changed or updated)"} className="cursor-help hover:text-slate-600 transition-colors">
+                      Password changed: {m.user.last_password_changed ? fmtRelative(m.user.last_password_changed) : "Never"}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">

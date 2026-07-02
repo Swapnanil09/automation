@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     # --- Application ---
-    PROJECT_NAME: str = "AutoFlow"
+    PROJECT_NAME: str = "Report Scheduler"
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"

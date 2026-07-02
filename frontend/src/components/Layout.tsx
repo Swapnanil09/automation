@@ -1,23 +1,36 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Bell, FolderGit2, LayoutDashboard, LogOut, ScrollText, User, Workflow } from "lucide-react";
+import { Bell, FolderGit2, LayoutDashboard, LogOut, ScrollText, User, X, Shield } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
-import { Avatar, cn, Menu, MenuItem, MenuLabel, MenuSeparator } from "./ui";
+import { Avatar, cn, Menu, MenuItem, MenuLabel, MenuSeparator, Logo } from "./ui";
 import type { Notification } from "../lib/types";
 
 const NAV = [
   { to: "/", label: "Dashboard", end: true, icon: LayoutDashboard },
   { to: "/workspaces", label: "Workspaces", icon: FolderGit2 },
-  {to: "/deliveries", label: "Logs", icon: ScrollText},
+  { to: "/deliveries", label: "Logs", icon: ScrollText },
   { to: "/notifications", label: "Notifications", icon: Bell },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  
+  const navItems = NAV.filter(n => {
+    if (n.to === "/deliveries" && !user?.is_superuser) return false;
+    return true;
+  });
+  if (user?.is_superuser) {
+    if (!navItems.find(n => n.to === "/admin")) {
+      navItems.push({ to: "/admin", label: "Admin Panel", icon: Shield });
+    }
+  }
+
   const [unread, setUnread] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
+
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const fetchRecent = () => {
     api.notifications.list()
@@ -48,19 +61,19 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-[248px] flex-col border-r border-slate-100 bg-white md:flex">
         <Link to="/" className="flex items-center gap-3 px-6 py-6">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white shadow-md shadow-brand/10 transition-transform duration-300 hover:scale-105">
-            <Workflow className="h-5 w-5" />
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-brand shadow-md shadow-brand/10 transition-transform duration-300 hover:scale-105">
+            <Logo className="h-5 w-5" />
           </span>
           <div>
-            <span className="block text-[16px] font-bold leading-none tracking-tight text-slate-900">AutoFlow</span>
-            <span className="mt-1 block text-[11px] font-medium leading-none text-slate-400">Automation platform</span>
+            <span className="block text-[16px] font-bold leading-none tracking-tight text-slate-900">Report Scheduler</span>
+            <span className="mt-1 block text-[11px] font-medium leading-none text-slate-400">Report delivery platform</span>
           </div>
         </Link>
 
         <div className="px-4">
           <p className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu</p>
           <nav className="space-y-1">
-            {NAV.map((n) => {
+            {navItems.map((n) => {
               const Icon = n.icon;
               return (
                 <NavLink
@@ -105,13 +118,23 @@ export default function Layout() {
 
       {/* Main column */}
       <div className="flex min-h-screen flex-1 flex-col md:pl-[248px]">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/90 px-5 backdrop-blur">
-          <Link to="/" className="flex items-center gap-2 md:hidden">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-white">
-              <Workflow className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-semibold">AutoFlow</span>
-          </Link>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-100/90 px-5 backdrop-blur shadow-sm">
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+            <Link to="/" className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-white">
+                <Logo className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-semibold text-slate-900">Report Scheduler</span>
+            </Link>
+          </div>
           <div className="hidden md:block" />
 
           <div className="flex items-center gap-1">
@@ -219,6 +242,64 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      {/* Mobile Sidebar/Drawer Overlay */}
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-50 flex md:hidden bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)}>
+          <aside className="w-[240px] flex-col border-r border-slate-100 bg-white flex h-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-6 border-b border-slate-50">
+              <Link to="/" className="flex items-center gap-3" onClick={() => setShowMobileMenu(false)}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-brand shadow-md">
+                  <Logo className="h-5 w-5" />
+                </span>
+                <span className="block text-sm font-bold text-slate-900">Report Scheduler</span>
+              </Link>
+              <button onClick={() => setShowMobileMenu(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-4 py-4">
+              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu</p>
+              <nav className="space-y-1">
+                {navItems.map((n) => {
+                  const Icon = n.icon;
+                  return (
+                    <NavLink
+                      key={n.to}
+                      to={n.to}
+                      end={n.end}
+                      onClick={() => setShowMobileMenu(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          "group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 border",
+                          isActive
+                            ? "bg-brand-50/60 text-brand-600 border-brand-100/50 shadow-sm"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 border-transparent",
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <span className="flex items-center gap-3">
+                            <Icon className={cn("h-[18px] w-[18px]", isActive ? "text-brand" : "text-slate-400")} />
+                            {n.label}
+                          </span>
+                          {n.to === "/notifications" && unread > 0 && (
+                            <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white tnum">
+                              {unread > 99 ? "99+" : unread}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </nav>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

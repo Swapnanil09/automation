@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Copy, Play, RefreshCw, Send } from "lucide-react";
+import { ChevronLeft, Copy, Play, RefreshCw, Send, MessageSquare, AlertTriangle, Trash2 } from "lucide-react";
+
 import { api } from "../lib/api";
-import type { TriggerType, Workflow, WorkflowRun } from "../lib/types";
+import type { TriggerType, Workflow, WorkflowRun, WorkflowComment, WorkflowShare, Member } from "../lib/types";
 import {
   Badge, Button, Card, CardBody, CardHeader, EmptyState, ErrorText, Field, Input, Label,
   PageHeader, Select, Skeleton, StatusPill, Textarea, cn, fmtRelative, useToast,
@@ -14,41 +15,177 @@ export default function WorkflowDetail() {
   const { wsId = "", wfId = "" } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  
   const [wf, setWf] = useState<Workflow | null>(null);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [comments, setComments] = useState<WorkflowComment[]>([]);
+  const [shares, setShares] = useState<WorkflowShare[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  
   const [definition, setDefinition] = useState("");
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  const [newComment, setNewComment] = useState("");
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [shareUserId, setShareUserId] = useState("");
+  const [transferUserId, setTransferUserId] = useState("");
 
-  const loadRuns = useCallback(() => { api.workflows.runs(wsId, wfId).then(setRuns).catch(() => {}); }, [wsId, wfId]);
+  const loadRuns = useCallback(() => {
+    api.workflows.runs(wsId, wfId).then(setRuns).catch(() => {});
+  }, [wsId, wfId]);
+
+  const loadComments = useCallback(() => {
+    api.workflows.comments(wsId, wfId).then(setComments).catch(() => {});
+  }, [wsId, wfId]);
+
+  const loadShares = useCallback(() => {
+    api.workflows.shares(wsId, wfId).then(setShares).catch(() => {});
+  }, [wsId, wfId]);
+
+  const loadMembers = useCallback(() => {
+    api.workspaces.members.list(wsId).then(setMembers).catch(() => {});
+  }, [wsId]);
+
   const load = useCallback(() => {
-    api.workflows.get(wsId, wfId).then((w) => { setWf(w); setDefinition(w.definition); setDirty(false); }).catch((e) => setError(e.message));
+    api.workflows.get(wsId, wfId)
+      .then((w) => {
+        setWf(w);
+        setDefinition(w.definition);
+        setDirty(false);
+      })
+      .catch((e) => setError(e.message));
     loadRuns();
-  }, [wsId, wfId, loadRuns]);
-  useEffect(() => { load(); }, [load]);
+    loadComments();
+    loadShares();
+    loadMembers();
+  }, [wsId, wfId, loadRuns, loadComments, loadShares, loadMembers]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function checkConflicts(cron: string) {
+    if (!cron) return;
+    try {
+      const res = await api.workflows.checkConflicts(wsId, cron, wfId);
+      if (res.conflicts && res.conflicts.length > 0) {
+        setConflictWarning(res.conflicts[0]);
+      } else {
+        setConflictWarning(null);
+      }
+    } catch {
+      setConflictWarning(null);
+    }
+  }
+
+  useEffect(() => {
+    if (wf?.schedule_cron && wf?.trigger_type === "schedule") {
+      checkConflicts(wf.schedule_cron);
+    } else {
+      setConflictWarning(null);
+    }
+  }, [wf?.schedule_cron, wf?.trigger_type]);
 
   async function save() {
-    setError(null); setSaving(true);
-    try { const w = await api.workflows.update(wsId, wfId, { definition }); setWf(w); setDirty(false); toast.success("Definition saved"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Save failed"); }
-    finally { setSaving(false); }
+    setError(null);
+    setSaving(true);
+    try {
+      const w = await api.workflows.update(wsId, wfId, { definition });
+      setWf(w);
+      setDirty(false);
+      toast.success("Definition saved");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
   }
+
   async function patch(body: Partial<Workflow>) {
-    try { setWf(await api.workflows.update(wsId, wfId, body)); }
-    catch (e) { setError(e instanceof Error ? e.message : "Update failed"); }
+    try {
+      const updated = await api.workflows.update(wsId, wfId, body);
+      setWf(updated);
+      toast.success("Settings updated");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    }
   }
+
   async function regen() {
-    try { setWf(await api.workflows.regenerateWebhook(wsId, wfId)); toast.success("Webhook URL regenerated"); } catch { /* ignore */ }
+    try {
+      setWf(await api.workflows.regenerateWebhook(wsId, wfId));
+      toast.success("Webhook URL regenerated");
+    } catch {
+      /* ignore */
+    }
   }
+
   async function run() {
-    setTriggering(true); setError(null);
-    try { const r = await api.workflows.trigger(wsId, wfId); navigate(`/workspaces/${wsId}/workflows/${wfId}/runs/${r.id}`); }
-    catch (e) { setError(e instanceof Error ? e.message : "Trigger failed"); setTriggering(false); }
+    setTriggering(true);
+    setError(null);
+    try {
+      const r = await api.workflows.trigger(wsId, wfId);
+      navigate(`/workspaces/${wsId}/workflows/${wfId}/runs/${r.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Trigger failed");
+      setTriggering(false);
+    }
   }
-  function copyWebhook(url: string) { navigator.clipboard?.writeText(url); toast.success("Webhook URL copied"); }
+
+  async function handleAddComment() {
+    if (!newComment.trim()) return;
+    try {
+      await api.workflows.addComment(wsId, wfId, { content: newComment });
+      setNewComment("");
+      loadComments();
+      toast.success("Comment added");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add comment");
+    }
+  }
+
+  async function handleShare() {
+    if (!shareUserId) return;
+    try {
+      await api.workflows.share(wsId, wfId, { user_id: shareUserId });
+      setShareUserId("");
+      loadShares();
+      toast.success("Workflow shared successfully");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to share");
+    }
+  }
+
+  async function handleRevokeShare(shareId: string) {
+    try {
+      await api.workflows.deleteShare(wsId, wfId, shareId);
+      loadShares();
+      toast.success("Share revoked");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to revoke share");
+    }
+  }
+
+  async function handleTransfer() {
+    if (!transferUserId) return;
+    try {
+      await api.workflows.transfer(wsId, wfId, { new_owner_id: transferUserId });
+      setTransferUserId("");
+      load();
+      toast.success("Ownership transferred");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to transfer ownership");
+    }
+  }
+
+  function copyWebhook(url: string) {
+    navigator.clipboard?.writeText(url);
+    toast.success("Webhook URL copied");
+  }
 
   if (error && !wf) return <p className="text-danger">{error}</p>;
   if (!wf) return (
@@ -62,23 +199,35 @@ export default function WorkflowDetail() {
   const webhookUrl = wf.webhook_token ? `${location.origin}/api/v1/webhooks/${wf.webhook_token}` : null;
 
   return (
-    <div>
-      <Link to={`/workspaces/${wsId}?tab=workflows`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink">
-        <ChevronLeft className="h-4 w-4" /> Workspace
-      </Link>
-      <PageHeader
-        title={
-          <span className="flex items-center gap-3">
-            {wf.name}
-            <Badge tone="neutral" className="capitalize">{wf.trigger_type}</Badge>
-            {!wf.enabled && <StatusPill status="cancelled" />}
-          </span>
-        }
-        actions={<Button onClick={run} disabled={triggering}><Play className="h-4 w-4" /> {triggering ? "Starting…" : "Run now"}</Button>}
-      />
+    <div className="space-y-6">
+      <div>
+        <Link to={`/workspaces/${wsId}?tab=workflows`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink">
+          <ChevronLeft className="h-4 w-4" /> Workspace
+        </Link>
+        <PageHeader
+          title={
+            <span className="flex items-center gap-3">
+              {wf.name}
+              <Badge tone="neutral" className="capitalize">{wf.trigger_type}</Badge>
+              {!wf.enabled && <StatusPill status="cancelled" />}
+            </span>
+          }
+          actions={<Button onClick={run} disabled={triggering}><Play className="h-4 w-4" /> {triggering ? "Starting…" : "Run now"}</Button>}
+        />
+      </div>
+
+      {conflictWarning && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-100 bg-amber-50/60 text-amber-800 text-sm">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+          <div>
+            <span className="font-bold">Schedule Conflict Detected:</span> {conflictWarning}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        {/* Left Side: YAML Editor */}
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader
               title="Definition"
@@ -104,11 +253,52 @@ export default function WorkflowDetail() {
               <ErrorText>{error}</ErrorText>
             </CardBody>
           </Card>
+
+          {/* Comments section */}
+          <Card>
+            <CardHeader
+              title="Discussion & Mentions"
+              description="Comment on this schedule or ask colleagues questions using @username."
+            />
+            <CardBody className="space-y-4">
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {comments.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">No comments posted yet.</p>
+                ) : (
+                  comments.map((c) => (
+                    <div key={c.id} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/30 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-800">
+                          {members.find(m => m.user_id === c.user_id)?.user?.username || "user"}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{fmtRelative(c.created_at)}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Ask a question or mention a teammate @username..."
+                  className="text-sm"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(); }}
+                />
+                <Button size="sm" onClick={handleAddComment}>
+                  <MessageSquare className="h-4 w-4 mr-1" /> Comment
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
         </div>
 
-        <div>
+        {/* Right Side: Configuration & Collaboration */}
+        <div className="space-y-6">
           <Card>
-            <CardHeader title="Trigger" />
+            <CardHeader title="Trigger & Settings" />
             <CardBody className="space-y-4">
               <Field label="Type">
                 <div className="grid grid-cols-3 gap-1.5">
@@ -185,6 +375,7 @@ export default function WorkflowDetail() {
                       </Select>
                     </Field>
 
+                    {/* Next scheduled runs */}
                     {wf.next_runs && wf.next_runs.length > 0 && (
                       <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-100">
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Next 5 scheduled runs</p>
@@ -215,6 +406,46 @@ export default function WorkflowDetail() {
                 </div>
               )}
 
+              {/* Priority Selection */}
+              <Field label="Job Priority" help="Dispatches Celery tasks with execution queue priority.">
+                <Select
+                  value={wf.priority || "Medium"}
+                  onChange={(e) => patch({ priority: e.target.value })}
+                >
+                  <option value="High">High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Low">Low Priority</option>
+                </Select>
+              </Field>
+
+              {/* Blackout Boundaries */}
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <Label>Blackout Window (Maintenance)</Label>
+                <p className="text-[11px] text-slate-400">Do not execute schedules within these hour boundaries (HH:MM).</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Start Time">
+                    <Input
+                      type="text"
+                      placeholder="e.g. 02:00"
+                      value={wf.blackout_start || ""}
+                      onBlur={(e) => patch({ blackout_start: e.target.value || null })}
+                      onChange={(e) => setWf({ ...wf, blackout_start: e.target.value })}
+                      className="font-mono text-xs"
+                    />
+                  </Field>
+                  <Field label="End Time">
+                    <Input
+                      type="text"
+                      placeholder="e.g. 04:00"
+                      value={wf.blackout_end || ""}
+                      onBlur={(e) => patch({ blackout_end: e.target.value || null })}
+                      onChange={(e) => setWf({ ...wf, blackout_end: e.target.value })}
+                      className="font-mono text-xs"
+                    />
+                  </Field>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between border-t border-hairline pt-4">
                 <div>
                   <p className="text-sm font-medium text-ink">Enabled</p>
@@ -226,16 +457,77 @@ export default function WorkflowDetail() {
               <div className="flex items-center justify-between border-t border-hairline pt-4">
                 <div>
                   <p className="text-sm font-medium text-ink">Email on Failure</p>
-                  <p className="text-xs text-faint">Send failure alert &amp; step logs to you via Gmail connection.</p>
+                  <p className="text-xs text-faint">Send failure alert &amp; step logs via Gmail connection.</p>
                 </div>
                 <Toggle on={wf.email_on_failure} onClick={() => patch({ email_on_failure: !wf.email_on_failure })} />
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Access & Collaboration Controls */}
+          <Card>
+            <CardHeader title="Access & Sharing" description="Manage access rules and ownership transfer." />
+            <CardBody className="space-y-4">
+              {/* Share schedule */}
+              <div className="space-y-2">
+                <Label>Share with User</Label>
+                <div className="flex gap-2">
+                  <Select value={shareUserId} onChange={(e) => setShareUserId(e.target.value)}>
+                    <option value="">Select teammate...</option>
+                    {members.map(m => (
+                      <option key={m.user_id} value={m.user_id}>
+                        @{m.user.username} ({m.user.full_name || m.user.email})
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" onClick={handleShare} disabled={!shareUserId}>Share</Button>
+                </div>
+              </div>
+
+              {/* Shared List */}
+              {shares.length > 0 && (
+                <div className="rounded-xl border border-slate-100 p-3 bg-slate-50/40 space-y-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Authorized Users</p>
+                  <div className="space-y-1.5">
+                    {shares.map(s => (
+                      <div key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono text-slate-600">
+                          @{members.find(m => m.user_id === s.user_id)?.user?.username || "User"}
+                        </span>
+                        <button
+                          onClick={() => handleRevokeShare(s.id)}
+                          className="text-rose-500 hover:text-rose-700 transition-colors"
+                          title="Revoke access"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Transfer Ownership */}
+              <div className="border-t border-slate-100 pt-4 space-y-2">
+                <Label>Transfer Ownership</Label>
+                <div className="flex gap-2">
+                  <Select value={transferUserId} onChange={(e) => setTransferUserId(e.target.value)}>
+                    <option value="">Select new owner...</option>
+                    {members.map(m => (
+                      <option key={m.user_id} value={m.user_id}>
+                        @{m.user.username}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" variant="secondary" onClick={handleTransfer} disabled={!transferUserId}>Transfer</Button>
+                </div>
               </div>
             </CardBody>
           </Card>
         </div>
       </div>
 
-      <Card className="mt-6">
+      <Card>
         <CardHeader title="Run history" description="Recent executions of this workflow." />
         {runs.length === 0 ? (
           <div className="p-5">
@@ -281,3 +573,4 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
     </button>
   );
 }
+

@@ -45,6 +45,7 @@ class ParsedStep:
     with_: dict = field(default_factory=dict)
     env: dict[str, str] = field(default_factory=dict)
     continue_on_error: bool = False
+    if_: str | None = None
 
     @property
     def is_action(self) -> bool:
@@ -65,6 +66,8 @@ class ParsedWorkflow:
     name: str
     env: dict[str, str] = field(default_factory=dict)
     steps: list[ParsedStep] = field(default_factory=list)
+    fallback_workflow: str | None = None
+    self_healing: dict = field(default_factory=dict)
 
 
 def _as_env(value: object, where: str) -> dict[str, str]:
@@ -88,10 +91,12 @@ def _parse_step(raw: dict, i: int) -> ParsedStep:
         raise WorkflowParseError(f"Step {i} must have a 'run' command or a 'uses' action")
 
     name = str(raw.get("name") or f"Step {i}")
+    if_val = raw.get("if")
     common = {
         "name": name,
         "env": _as_env(raw.get("env"), f"steps[{i}].env"),
         "continue_on_error": bool(raw.get("continue_on_error", False)),
+        "if_": str(if_val) if if_val is not None else None,
     }
 
     if has_uses:
@@ -104,7 +109,7 @@ def _parse_step(raw: dict, i: int) -> ParsedStep:
         with_ = raw.get("with") or {}
         if not isinstance(with_, dict):
             raise WorkflowParseError(f"Step {i} 'with' must be a mapping")
-        if not with_.get("to"):
+        if channel in {"gmail", "telegram", "whatsapp"} and not with_.get("to"):
             raise WorkflowParseError(f"Step {i} ('{channel}') needs a 'to' recipient")
         return ParsedStep(uses=channel, with_=with_, **common)
 
@@ -137,6 +142,8 @@ def parse_workflow(definition: str, *, default_name: str = "workflow") -> Parsed
         name=str(data.get("name") or default_name),
         env=_as_env(data.get("env"), "env"),
         steps=steps,
+        fallback_workflow=data.get("fallback_workflow"),
+        self_healing=data.get("self_healing") or {},
     )
 
 

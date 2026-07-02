@@ -6,7 +6,7 @@ from app.models.delivery import Delivery  # noqa: F401
 from app.models.notification import Notification
 from app.models.secret import Secret, Variable
 from app.models.user import User
-from app.models.workflow import StepRun, Workflow, WorkflowRun
+from app.models.workflow import StepRun, Workflow, WorkflowRun, WorkflowShare, WorkflowComment, ActivityLog
 from app.models.workspace import Workspace, WorkspaceMember
 
 __all__ = [
@@ -20,4 +20,7 @@ __all__ = [
     "WorkflowRun",
     "StepRun",
     "Notification",
+    "WorkflowShare",
+    "WorkflowComment",
+    "ActivityLog",
 ]
