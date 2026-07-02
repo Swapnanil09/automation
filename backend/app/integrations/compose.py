@@ -4,6 +4,7 @@ Recipients, subject and body support ``${VAR}`` substitution from the run
 environment (variables + workflow env). Attachments are workspace-relative
 file paths, resolved safely and read with a total-size cap.
 """
+
 from __future__ import annotations
 
 import mimetypes
@@ -21,7 +22,9 @@ def _subst(text: str, env: dict[str, str]) -> str:
     return _VAR.sub(lambda m: env.get(m.group(1), m.group(0)), text)
 
 
-def _recipients(value: object, env: dict[str, str], workspace_id: uuid.UUID, channel_type: str | None = None) -> list[str]:
+def _recipients(
+    value: object, env: dict[str, str], workspace_id: uuid.UUID, channel_type: str | None = None
+) -> list[str]:
     if value is None:
         raise ChannelError("Missing 'to' (recipient) in the step")
     if isinstance(value, str):
@@ -30,7 +33,7 @@ def _recipients(value: object, env: dict[str, str], workspace_id: uuid.UUID, cha
         raw = [_subst(str(v), env) for v in value]
     else:
         raise ChannelError("'to' must be a string or a list")
-    
+
     out: list[str] = []
     for item in raw:
         out.extend(p.strip() for p in re.split(r"[,\s]+", item) if p.strip())
@@ -38,8 +41,10 @@ def _recipients(value: object, env: dict[str, str], workspace_id: uuid.UUID, cha
     # Try loading contacts.json from the workspace
     contacts_data = None
     try:
-        from app.core.storage import safe_join
         import json
+
+        from app.core.storage import safe_join
+
         contacts_file = safe_join(workspace_id, "contacts.json")
         if contacts_file.is_file():
             contacts_data = json.loads(contacts_file.read_text(encoding="utf-8"))
@@ -58,7 +63,7 @@ def _recipients(value: object, env: dict[str, str], workspace_id: uuid.UUID, cha
             group_name = r[1:]
         elif r.startswith("group:"):
             group_name = r[6:]
-        
+
         matched_contacts = []
         if group_name:
             matched_contacts = [c for c in contacts_list if group_name in c.get("groups", [])]
@@ -96,10 +101,7 @@ def compose_message(
     recipients = _recipients(with_params.get("to"), env, workspace_id, channel_type)
 
     body_raw = (
-        with_params.get("body")
-        or with_params.get("text")
-        or with_params.get("message")
-        or ""
+        with_params.get("body") or with_params.get("text") or with_params.get("message") or ""
     )
     body = _subst(str(body_raw), env)
 

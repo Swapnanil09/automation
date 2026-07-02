@@ -4,6 +4,7 @@ A connection stores the credentials for one channel (Gmail / Telegram /
 WhatsApp) for a workspace. The whole config blob is JSON, encrypted at rest
 with the same Fernet key used for secrets. Secret fields are never returned.
 """
+
 import uuid
 
 from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint, Uuid
@@ -14,9 +15,7 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 
 class Connection(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "connections"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "name", name="uq_connection_name"),
-    )
+    __table_args__ = (UniqueConstraint("workspace_id", "name", name="uq_connection_name"),)
 
     workspace_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
@@ -33,9 +32,11 @@ class Connection(UUIDMixin, TimestampMixin, Base):
     def next_runs(self) -> list[str] | None:
         if not self.schedule_cron:
             return None
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
         from zoneinfo import ZoneInfo
+
         from croniter import croniter
+
         try:
             tz = ZoneInfo(self.schedule_tz or "UTC")
         except Exception:

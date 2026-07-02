@@ -7,6 +7,7 @@ variables, streams combined stdout/stderr into the step's ``logs`` (committing
 incrementally so the UI can tail them), then marks the run success/failed and
 emits a notification.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,7 @@ from app.schemas.delivery import DELIVERED, EXECUTING, FAILED
 from app.workers.parser import WorkflowParseError, parse_workflow
 
 STEP_TIMEOUT_SECONDS = 1800  # 30 min hard cap per step
-_LOG_FLUSH_EVERY = 10        # commit logs every N lines
+_LOG_FLUSH_EVERY = 10  # commit logs every N lines
 
 
 def _now() -> str:
@@ -50,13 +51,9 @@ def _build_env(db: Session, workspace_id: uuid.UUID, wf_env: dict[str, str]) -> 
         "CI": "true",
         "AUTOFLOW": "true",
     }
-    for v in db.execute(
-        select(Variable).where(Variable.workspace_id == workspace_id)
-    ).scalars():
+    for v in db.execute(select(Variable).where(Variable.workspace_id == workspace_id)).scalars():
         env[v.key] = v.value
-    for s in db.execute(
-        select(Secret).where(Secret.workspace_id == workspace_id)
-    ).scalars():
+    for s in db.execute(select(Secret).where(Secret.workspace_id == workspace_id)).scalars():
         try:
             env[s.key] = decrypt(s.value_encrypted)
         except ValueError:
@@ -120,9 +117,7 @@ def _run_step(
             step_row.logs += "".join(buffer)
         step_row.exit_code = code
         step_row.finished_at = _now()
-        step_row.status = (
-            StepStatus.SUCCESS.value if code == 0 else StepStatus.FAILED.value
-        )
+        step_row.status = StepStatus.SUCCESS.value if code == 0 else StepStatus.FAILED.value
         db.commit()
     return code
 
@@ -135,9 +130,7 @@ def _fmt_size(n: int) -> str:
     return f"{n / (1024 * 1024):.1f} MB"
 
 
-def _resolve_channel(
-    db: Session, workspace_id: uuid.UUID, channel_type: str, name: str | None
-):
+def _resolve_channel(db: Session, workspace_id: uuid.UUID, channel_type: str, name: str | None):
     stmt = select(Connection).where(
         Connection.workspace_id == workspace_id,
         Connection.type == channel_type,
@@ -255,8 +248,13 @@ def _run_action(db: Session, step_row: StepRun, pstep, env: dict[str, str], run,
         lines.append(f"✗ {exc}")
         if delivery is None:
             delivery = _new_delivery(
-                run, workflow, pstep, step_row.name,
-                status=FAILED, detail=str(exc), finished_at=_now(),
+                run,
+                workflow,
+                pstep,
+                step_row.name,
+                status=FAILED,
+                detail=str(exc),
+                finished_at=_now(),
             )
             db.add(delivery)
         else:
@@ -317,9 +315,7 @@ def execute_run(db: Session, run_id: uuid.UUID) -> str:
     for idx, pstep in enumerate(parsed.steps):
         step_row = step_rows[idx] if idx < len(step_rows) else None
         if step_row is None:
-            step_row = StepRun(
-                run_id=run.id, name=pstep.name, step_index=idx, command=pstep.run
-            )
+            step_row = StepRun(run_id=run.id, name=pstep.name, step_index=idx, command=pstep.run)
             db.add(step_row)
             db.commit()
 
@@ -377,6 +373,7 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
 
     if not ok and workflow.email_on_failure and ws:
         from app.models.user import User
+
         target_user = None
         if run.triggered_by_id:
             target_user = db.get(User, run.triggered_by_id)
@@ -390,22 +387,26 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
             stmt = select(Connection).where(
                 Connection.workspace_id == run.workspace_id,
                 Connection.type == "gmail",
-                Connection.enabled.is_(True)
+                Connection.enabled.is_(True),
             )
             conn = db.execute(stmt).scalars().first()
             if conn:
-                from app.integrations.base import OutboundMessage
-                from app.services.connection_service import _decrypt_config
                 from app.core.logging import logger
+                from app.integrations.base import OutboundMessage
                 from app.integrations.registry import build_channel
+                from app.services.connection_service import _decrypt_config
+
                 try:
                     decrypted = _decrypt_config(conn)
                     channel = build_channel("gmail", decrypted)
-                    subject = f"❌ AutoFlow Failure Alert: Workflow '{workflow.name}' (Run #{run.run_number}) Failed"
+                    subject = (
+                        f"❌ AutoFlow Failure Alert: Workflow '{workflow.name}' "
+                        f"(Run #{run.run_number}) Failed"
+                    )
 
                     # Construct step-by-step logs text
                     logs_list = []
-                    for step in step_rows:
+                    for step in run.steps:
                         logs_list.append(f"=== Step: {step.name} (Status: {step.status}) ===")
                         logs_list.append(step.logs or "(no logs)")
                         logs_list.append("\n")
@@ -413,7 +414,8 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
 
                     body = (
                         f"Hello {target_user.full_name or target_user.username or 'User'},\n\n"
-                        f"This is an automated failure report alert that your workflow '{workflow.name}' (Run #{run.run_number}) "
+                        f"This is an automated failure report alert that your workflow "
+                        f"'{workflow.name}' (Run #{run.run_number}) "
                         f"failed in workspace '{ws.slug}'.\n\n"
                         f"Error Detail:\n{run.error or 'Unknown error'}\n\n"
                         f"--------------------------------------------------\n"
@@ -429,7 +431,8 @@ def _notify(db: Session, run: WorkflowRun, workflow: Workflow, *, ok: bool) -> N
                         subject=subject,
                         body=body,
                         body_format="text",
-                        attachments=[]
+                        attachments=[],
+
                     )
                     channel.send(msg)
                     logger.info("Workflow failure alert email sent to %s", target_user.email)

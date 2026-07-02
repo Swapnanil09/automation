@@ -3,6 +3,7 @@
 Setup: enable 2-Step Verification on the Google account, then create an
 App Password (Google Account → Security → App passwords) and use it here.
 """
+
 from __future__ import annotations
 
 import smtplib
@@ -34,26 +35,32 @@ class GmailChannel(Channel):
     config_fields = [
         ConfigField("email", "Email address", placeholder="you@example.com"),
         ConfigField(
-            "app_password", "Password / App password", secret=True,
+            "app_password",
+            "Password / App password",
+            secret=True,
             help="App password or login password.",
         ),
         ConfigField(
-            "from_name", "Sender name", required=False,
+            "from_name",
+            "Sender name",
+            required=False,
             placeholder="AutoFlow Reports",
         ),
         ConfigField(
-            "smtp_server", "SMTP Server", required=False,
+            "smtp_server",
+            "SMTP Server",
+            required=False,
             placeholder="smtp.gmail.com",
         ),
         ConfigField(
-            "smtp_port", "SMTP Port", required=False,
+            "smtp_port",
+            "SMTP Port",
+            required=False,
             placeholder="465 (SSL) or 587 (TLS)",
         ),
     ]
 
-    def __init__(
-        self, config: dict[str, str], *, smtp_factory: SmtpFactory = None
-    ) -> None:
+    def __init__(self, config: dict[str, str], *, smtp_factory: SmtpFactory = None) -> None:
         self.email = config["email"]
         self.app_password = config["app_password"]
         self.from_name = config.get("from_name") or ""
@@ -94,7 +101,7 @@ class GmailChannel(Channel):
                     server.ehlo()
                     server.starttls()
                     server.ehlo()
-            
+
             with server:
                 server.login(self.email, self.app_password)
                 server.send_message(msg)

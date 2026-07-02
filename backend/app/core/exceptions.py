@@ -1,4 +1,5 @@
 """Application exception hierarchy and FastAPI handlers."""
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
@@ -48,9 +49,7 @@ class ValidationError(AppException):
 
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppException)
-    async def _handle_app_exception(
-        request: Request, exc: AppException
-    ) -> JSONResponse:
+    async def _handle_app_exception(request: Request, exc: AppException) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.__class__.__name__, "detail": exc.detail},

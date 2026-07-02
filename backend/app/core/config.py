@@ -1,4 +1,5 @@
 """Application configuration loaded from environment variables / .env."""
+
 from functools import lru_cache
 from typing import Literal
 

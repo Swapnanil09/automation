@@ -1,4 +1,5 @@
 """Authentication endpoints (Phase 2)."""
+
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession

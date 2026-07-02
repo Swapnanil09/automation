@@ -3,6 +3,7 @@
 Setup: create a bot with @BotFather to get a token. Each recipient is a chat
 id or an @channel_username the bot can post to.
 """
+
 from __future__ import annotations
 
 from app.integrations.base import (
@@ -27,8 +28,11 @@ class TelegramChannel(Channel):
     send_hint = "to (chat id or @channel), body, format (text|markdown|html), attachments"
     config_fields = [
         ConfigField(
-            "bot_token", "Bot token", secret=True,
-            placeholder="123456:ABC-DEF...", help="Token from @BotFather.",
+            "bot_token",
+            "Bot token",
+            secret=True,
+            placeholder="123456:ABC-DEF...",
+            help="Token from @BotFather.",
         ),
     ]
 

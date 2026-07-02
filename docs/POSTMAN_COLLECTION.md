@@ -162,7 +162,13 @@ This document serves as the complete REST API specification for AutoFlow. Use th
 *   **Path**: `/api/v1/dashboard/stats`
 *   **Headers**: `Authorization: Bearer <token>`
 
+### Get Cross-Workspace Workflow Runs
+*   **Method**: `GET`
+*   **Path**: `/api/v1/dashboard/runs?limit=200`
+*   **Headers**: `Authorization: Bearer <token>`
+
 ### List Delivery logs
 *   **Method**: `GET`
 *   **Path**: `/api/v1/deliveries?limit=100&status=delivered&channel=telegram`
 *   **Headers**: `Authorization: Bearer <token>`
+

@@ -1,4 +1,5 @@
 """Smoke tests for the API entry points (no live DB/Redis required)."""
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 

@@ -1,4 +1,5 @@
 """Workspace file-manager endpoints (Phase 4)."""
+
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi import File as FileParam
 

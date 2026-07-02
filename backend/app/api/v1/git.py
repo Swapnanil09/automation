@@ -1,4 +1,5 @@
 """Workspace Git endpoints (Phase 5)."""
+
 from fastapi import APIRouter, Depends
 
 from app.api.deps import WorkspaceContext, get_workspace_ctx, require_workspace_role

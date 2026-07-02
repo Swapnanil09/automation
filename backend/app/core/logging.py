@@ -3,6 +3,7 @@
 A clean, human-readable console format is used. Structured/JSON logging
 (structlog) is introduced in Phase 10 alongside the logging subsystem.
 """
+
 import logging
 import sys
 

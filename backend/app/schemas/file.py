@@ -1,11 +1,12 @@
 """File-manager schemas (Phase 4)."""
+
 from pydantic import BaseModel, Field
 
 
 class FileNode(BaseModel):
     name: str
-    path: str            # relative to workspace root
-    type: str            # "file" | "dir"
+    path: str  # relative to workspace root
+    type: str  # "file" | "dir"
     size: int | None = None
 
 

@@ -1,4 +1,5 @@
 """Authentication schemas (Phase 2)."""
+
 from pydantic import BaseModel, EmailStr, Field
 
 

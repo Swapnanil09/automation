@@ -1,4 +1,5 @@
 """Workspace schemas (Phase 3)."""
+
 import uuid
 from datetime import datetime
 

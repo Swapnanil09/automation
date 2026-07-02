@@ -1,4 +1,5 @@
 """Workflow, run and log endpoints (Phases 7-10)."""
+
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -91,9 +92,7 @@ async def trigger_workflow(
 ):
     svc = WorkflowService(db)
     wf = await svc.get(ctx.workspace.id, workflow_id)
-    return await svc.create_run(
-        wf, trigger=TriggerType.MANUAL.value, user_id=ctx.member.user_id
-    )
+    return await svc.create_run(wf, trigger=TriggerType.MANUAL.value, user_id=ctx.member.user_id)
 
 
 @router.get("/{workflow_id}/runs", response_model=list[WorkflowRunRead])

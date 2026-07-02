@@ -1,4 +1,5 @@
 """User notifications (Phase 11)."""
+
 import uuid
 
 from sqlalchemy import Boolean, ForeignKey, String, Text, Uuid

@@ -1,4 +1,5 @@
 """Notification schemas (Phase 11)."""
+
 import uuid
 from datetime import datetime
 

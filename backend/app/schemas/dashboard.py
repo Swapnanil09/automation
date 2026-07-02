@@ -1,4 +1,5 @@
 """Dashboard aggregate schemas (Phase 12)."""
+
 from pydantic import BaseModel
 
 

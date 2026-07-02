@@ -7,6 +7,7 @@ Two engines are exposed:
 * **sync** (``sync_engine`` / ``SessionLocal``) — used by Celery workers and
   Alembic, which run in a synchronous context.
 """
+
 from collections.abc import AsyncGenerator, Generator
 
 from sqlalchemy import create_engine

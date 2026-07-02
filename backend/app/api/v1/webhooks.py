@@ -2,6 +2,7 @@
 
 Unauthenticated — the secret is the unguessable token embedded in the URL.
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +22,5 @@ async def trigger_via_webhook(token: str, db: AsyncSession = Depends(get_db)) ->
         raise NotFoundError("Unknown webhook token")
     if wf.trigger_type != TriggerType.WEBHOOK.value:
         raise ConflictError("Workflow is not configured for webhook triggers")
-    run = await WorkflowService(db).create_run(
-        wf, trigger=TriggerType.WEBHOOK.value, user_id=None
-    )
+    run = await WorkflowService(db).create_run(wf, trigger=TriggerType.WEBHOOK.value, user_id=None)
     return {"run_id": str(run.id), "run_number": run.run_number, "status": run.status}

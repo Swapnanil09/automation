@@ -1,4 +1,5 @@
 """Workflow CRUD and run orchestration (Phases 7, 8, 9)."""
+
 from __future__ import annotations
 
 import re
@@ -58,11 +59,7 @@ class WorkflowService:
     ) -> Workflow:
         self._validate(data.definition)
         slug = await self._unique_slug(workspace_id, data.name)
-        token = (
-            _secrets.token_urlsafe(24)
-            if data.trigger_type == TriggerType.WEBHOOK
-            else None
-        )
+        token = _secrets.token_urlsafe(24) if data.trigger_type == TriggerType.WEBHOOK else None
         wf = Workflow(
             workspace_id=workspace_id,
             name=data.name,
@@ -81,9 +78,7 @@ class WorkflowService:
         await self.db.refresh(wf)
         return wf
 
-    async def update(
-        self, wf: Workflow, data: WorkflowUpdate
-    ) -> Workflow:
+    async def update(self, wf: Workflow, data: WorkflowUpdate) -> Workflow:
         if data.definition is not None:
             self._validate(data.definition)
             wf.definition = data.definition
@@ -142,9 +137,7 @@ class WorkflowService:
         run = await self.runs.add(run)
         for idx, step in enumerate(parsed.steps):
             self.db.add(
-                StepRun(
-                    run_id=run.id, name=step.name, step_index=idx, command=step.command_display
-                )
+                StepRun(run_id=run.id, name=step.name, step_index=idx, command=step.command_display)
             )
         await self.db.flush()
         # Commit so the row is visible to the worker process before dispatch.
@@ -163,17 +156,18 @@ class WorkflowService:
     ) -> list[WorkflowRun]:
         return await self.runs.list_for_workflow(wf.id, limit=limit, offset=offset)
 
-    async def get_run(
-        self, workspace_id: uuid.UUID, run_id: uuid.UUID
-    ) -> WorkflowRun:
+    async def get_run(self, workspace_id: uuid.UUID, run_id: uuid.UUID) -> WorkflowRun:
         run = await self.runs.get_with_steps(run_id)
         if run is None or run.workspace_id != workspace_id:
             raise NotFoundError("Run not found")
         return run
 
     async def cancel_run(self, run: WorkflowRun) -> WorkflowRun:
-        if run.status in {RunStatus.SUCCESS.value, RunStatus.FAILED.value,
-                          RunStatus.CANCELLED.value}:
+        if run.status in {
+            RunStatus.SUCCESS.value,
+            RunStatus.FAILED.value,
+            RunStatus.CANCELLED.value,
+        }:
             raise ConflictError("Run already finished")
         run.status = RunStatus.CANCELLED.value
         await self.db.flush()

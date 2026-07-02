@@ -3,6 +3,7 @@
 Operates directly on the workspace working tree. All paths run through
 ``storage.safe_join`` so traversal outside the workspace is impossible.
 """
+
 from __future__ import annotations
 
 import shutil

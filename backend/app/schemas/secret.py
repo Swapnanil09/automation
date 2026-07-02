@@ -1,4 +1,5 @@
 """Secret and variable schemas (Phase 6). Secret values are write-only."""
+
 import uuid
 from datetime import datetime
 
@@ -22,6 +23,7 @@ class SecretUpdate(BaseModel):
 
 class SecretRead(ORMModel):
     """Never exposes the value — only metadata."""
+
     id: uuid.UUID
     key: str
     description: str | None

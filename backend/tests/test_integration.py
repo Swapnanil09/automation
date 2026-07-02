@@ -1,4 +1,5 @@
 """End-to-end integration tests across all phases (SQLite-backed)."""
+
 import uuid
 
 import pytest
@@ -14,9 +15,7 @@ async def _register(client, email, username, pw="password123"):
 
 
 async def _login(client, login, pw="password123"):
-    resp = await client.post(
-        "/api/v1/auth/login", data={"username": login, "password": pw}
-    )
+    resp = await client.post("/api/v1/auth/login", data={"username": login, "password": pw})
     return resp.json()["access_token"]
 
 
@@ -70,7 +69,8 @@ async def test_workspace_files_secrets_and_members(client):
     assert w.status_code == 200
     rd = await client.get(
         f"/api/v1/workspaces/{wsid}/files/content",
-        params={"path": "src/app.py"}, headers=h,
+        params={"path": "src/app.py"},
+        headers=h,
     )
     assert rd.status_code == 200 and rd.json()["content"] == "print('hi')"
 
@@ -80,7 +80,8 @@ async def test_workspace_files_secrets_and_members(client):
     # secret value is write-only (never returned)
     sc = await client.post(
         f"/api/v1/workspaces/{wsid}/secrets",
-        json={"key": "API_KEY", "value": "topsecret"}, headers=h,
+        json={"key": "API_KEY", "value": "topsecret"},
+        headers=h,
     )
     assert sc.status_code == 201 and "value" not in sc.json()
     lst = await client.get(f"/api/v1/workspaces/{wsid}/secrets", headers=h)
@@ -89,14 +90,16 @@ async def test_workspace_files_secrets_and_members(client):
     # variable is readable
     vc = await client.post(
         f"/api/v1/workspaces/{wsid}/variables",
-        json={"key": "REGION", "value": "ap-south-1"}, headers=h,
+        json={"key": "REGION", "value": "ap-south-1"},
+        headers=h,
     )
     assert vc.status_code == 201 and vc.json()["value"] == "ap-south-1"
 
     # add bob as member; bob can read but not delete the workspace
     add = await client.post(
         f"/api/v1/workspaces/{wsid}/members",
-        json={"username": "bob", "role": "member"}, headers=h,
+        json={"username": "bob", "role": "member"},
+        headers=h,
     )
     assert add.status_code == 201
     btok = await _login(client, "bob")
@@ -109,9 +112,7 @@ async def test_workspace_files_secrets_and_members(client):
     # non-member sees 404 (existence hidden)
     await _register(client, "eve@x.com", "eve")
     etok = await _login(client, "eve")
-    assert (
-        await client.get(f"/api/v1/workspaces/{wsid}", headers=_auth(etok))
-    ).status_code == 404
+    assert (await client.get(f"/api/v1/workspaces/{wsid}", headers=_auth(etok))).status_code == 404
 
 
 async def test_git_init_and_commit(client):
@@ -121,13 +122,16 @@ async def test_git_init_and_commit(client):
     wsid = ws.json()["id"]
     await client.put(
         f"/api/v1/workspaces/{wsid}/files/content",
-        params={"path": "README.md"}, json={"content": "# hi"}, headers=h,
+        params={"path": "README.md"},
+        json={"content": "# hi"},
+        headers=h,
     )
     init = await client.post(f"/api/v1/workspaces/{wsid}/git/init", headers=h)
     assert init.status_code == 201 and init.json()["initialized"] is True
     commit = await client.post(
         f"/api/v1/workspaces/{wsid}/git/commit",
-        json={"message": "initial", "add_all": True}, headers=h,
+        json={"message": "initial", "add_all": True},
+        headers=h,
     )
     assert commit.status_code == 200 and commit.json()["message"] == "initial"
     log = await client.get(f"/api/v1/workspaces/{wsid}/git/log", headers=h)
@@ -141,20 +145,22 @@ async def test_workflow_creation_validation_and_execution(client, db_sync):
     wsid = ws.json()["id"]
     await client.post(
         f"/api/v1/workspaces/{wsid}/variables",
-        json={"key": "REGION", "value": "ap-south-1"}, headers=h,
+        json={"key": "REGION", "value": "ap-south-1"},
+        headers=h,
     )
     await client.post(
         f"/api/v1/workspaces/{wsid}/secrets",
-        json={"key": "API_KEY", "value": "abcdef123456"}, headers=h,
+        json={"key": "API_KEY", "value": "abcdef123456"},
+        headers=h,
     )
 
     definition = (
         "name: CI\n"
         "steps:\n"
         "  - name: Greet\n"
-        "    run: echo \"hi from $REGION\"\n"
+        '    run: echo "hi from $REGION"\n'
         "  - name: Secret len\n"
-        "    run: echo \"len=${#API_KEY}\"\n"
+        '    run: echo "len=${#API_KEY}"\n'
         "  - name: Fail\n"
         "    run: exit 3\n"
         "  - name: Skipped\n"
@@ -162,7 +168,8 @@ async def test_workflow_creation_validation_and_execution(client, db_sync):
     )
     wf = await client.post(
         f"/api/v1/workspaces/{wsid}/workflows",
-        json={"name": "CI", "definition": definition}, headers=h,
+        json={"name": "CI", "definition": definition},
+        headers=h,
     )
     assert wf.status_code == 201, wf.text
     wfid = wf.json()["id"]
@@ -170,14 +177,13 @@ async def test_workflow_creation_validation_and_execution(client, db_sync):
     # invalid YAML rejected (422)
     bad = await client.post(
         f"/api/v1/workspaces/{wsid}/workflows",
-        json={"name": "Bad", "definition": "steps: []"}, headers=h,
+        json={"name": "Bad", "definition": "steps: []"},
+        headers=h,
     )
     assert bad.status_code == 422
 
     # trigger via HTTP creates a queued run (dispatch stubbed)
-    trig = await client.post(
-        f"/api/v1/workspaces/{wsid}/workflows/{wfid}/trigger", headers=h
-    )
+    trig = await client.post(f"/api/v1/workspaces/{wsid}/workflows/{wfid}/trigger", headers=h)
     assert trig.status_code == 202
     run_id = trig.json()["id"]
     assert trig.json()["status"] == "queued" and trig.json()["run_number"] == 1

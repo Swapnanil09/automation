@@ -1,4 +1,5 @@
 """Workspace lifecycle and membership management (Phase 3)."""
+
 from __future__ import annotations
 
 import re
@@ -39,15 +40,11 @@ class WorkspaceService:
 
     async def create(self, data: WorkspaceCreate, owner_id: uuid.UUID) -> Workspace:
         slug = await self._unique_slug(data.name)
-        ws = Workspace(
-            name=data.name, slug=slug, description=data.description, owner_id=owner_id
-        )
+        ws = Workspace(name=data.name, slug=slug, description=data.description, owner_id=owner_id)
         ws = await self.repo.add(ws)
         # Owner is automatically a member with the OWNER role.
         await self.members.add(
-            WorkspaceMember(
-                workspace_id=ws.id, user_id=owner_id, role=WorkspaceRole.OWNER.value
-            )
+            WorkspaceMember(workspace_id=ws.id, user_id=owner_id, role=WorkspaceRole.OWNER.value)
         )
         ensure_workspace_dir(ws.id)
         return ws
@@ -74,9 +71,7 @@ class WorkspaceService:
             await self.db.refresh(m, ["workspace"])
         return members
 
-    async def add_member(
-        self, ws: Workspace, login: str, role: str
-    ) -> WorkspaceMember:
+    async def add_member(self, ws: Workspace, login: str, role: str) -> WorkspaceMember:
         if role not in {r.value for r in WorkspaceRole}:
             raise ConflictError(f"Invalid role '{role}'")
         user = await self.users.get_by_login(login)

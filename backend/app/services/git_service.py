@@ -4,6 +4,7 @@ Each workspace working tree can be initialised as a Git repository. The
 service exposes the common porcelain commands the UI needs: status, stage,
 commit, log, branches and checkout. Requires the ``git`` binary on PATH.
 """
+
 from __future__ import annotations
 
 import uuid

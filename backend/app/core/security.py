@@ -6,6 +6,7 @@ Two token types are issued:
 * **access**  — short-lived, sent on every request (``Authorization: Bearer``).
 * **refresh** — long-lived, exchanged for a new access token at ``/auth/refresh``.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -55,9 +56,7 @@ def _create_token(
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_access_token(
-    subject: str | uuid.UUID, extra: dict[str, Any] | None = None
-) -> str:
+def create_access_token(subject: str | uuid.UUID, extra: dict[str, Any] | None = None) -> str:
     return _create_token(
         subject,
         "access",
@@ -78,7 +77,5 @@ def decode_token(token: str, expected_type: TokenType | None = None) -> dict[str
     """Decode and validate a JWT. Raises ``jwt.PyJWTError`` on failure."""
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     if expected_type is not None and payload.get("type") != expected_type:
-        raise jwt.InvalidTokenError(
-            f"Expected {expected_type} token, got {payload.get('type')}"
-        )
+        raise jwt.InvalidTokenError(f"Expected {expected_type} token, got {payload.get('type')}")
     return payload

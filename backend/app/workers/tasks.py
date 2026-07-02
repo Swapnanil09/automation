@@ -1,10 +1,12 @@
 """Celery tasks: workflow execution + the scheduled-dispatch beat task."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 from croniter import croniter
+from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.core.logging import logger
@@ -38,14 +40,16 @@ def run_workflow(self, run_id: str) -> str:  # noqa: ANN001
 
 def dispatch_connections(db: Session, now: datetime) -> int:
     """Fire any scheduled connection heartbeats/checks that are due."""
+    import json
+    from datetime import timedelta
+
     from sqlalchemy import select
-    from app.models.connection import Connection
-    from app.models.delivery import Delivery
+
+    from app.core.crypto import decrypt
     from app.integrations.base import OutboundMessage
     from app.integrations.registry import build_channel
-    from app.core.crypto import decrypt
-    from datetime import timedelta
-    import json
+    from app.models.connection import Connection
+    from app.models.delivery import Delivery
 
     fired = 0
     connections = list(
@@ -84,7 +88,7 @@ def dispatch_connections(db: Session, now: datetime) -> int:
             .where(
                 Delivery.connection_name == conn.name,
                 Delivery.workspace_id == conn.workspace_id,
-                Delivery.created_at >= cutoff
+                Delivery.created_at >= cutoff,
             )
             .limit(1)
         ).first()
@@ -94,13 +98,16 @@ def dispatch_connections(db: Session, now: datetime) -> int:
         try:
             config = json.loads(decrypt(conn.config_encrypted))
             channel = build_channel(conn.type, config)
-            body = f"Scheduled check from connection '{conn.name}' ({conn.type}) at {now_tz.isoformat()}"
+            body = (
+                f"Scheduled check from connection '{conn.name}' ({conn.type}) "
+                f"at {now_tz.isoformat()}"
+            )
             msg = OutboundMessage(
                 recipients=[conn.schedule_to],
                 subject=f"Scheduled check: {conn.name}",
                 body=body,
                 body_format="text",
-                attachments=[]
+                attachments=[],
             )
 
             delivery = Delivery(
@@ -162,20 +169,20 @@ def dispatch_scheduled() -> int:
             cron = (wf.schedule_cron or "").strip()
             if not cron or not croniter.is_valid(cron):
                 continue
-            
+
             # Resolve target timezone
             tz_name = getattr(wf, "schedule_tz", None) or "UTC"
             try:
                 tz = ZoneInfo(tz_name)
             except Exception:
                 tz = UTC
-            
+
             # Localize now to the target timezone
             now_tz = now.astimezone(tz)
             prev_fire = croniter(cron, now_tz).get_prev(datetime)
             if prev_fire.tzinfo is None:
                 prev_fire = prev_fire.replace(tzinfo=tz)
-                
+
             window_start = now.timestamp() - SCHED_TICK_SECONDS
             if prev_fire.timestamp() < window_start:
                 continue

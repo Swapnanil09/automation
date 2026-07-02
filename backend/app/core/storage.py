@@ -4,6 +4,7 @@ Every workspace gets a directory at ``WORKSPACES_ROOT/<workspace_id>``. All
 user-supplied paths are resolved through :func:`safe_join`, which guarantees
 the result stays inside the workspace root (defeats ``../`` traversal).
 """
+
 from __future__ import annotations
 
 import uuid

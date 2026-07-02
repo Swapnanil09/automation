@@ -1,4 +1,5 @@
 """Encrypted secrets and plaintext variables (Phase 6)."""
+
 import uuid
 
 from sqlalchemy import ForeignKey, String, Text, UniqueConstraint, Uuid

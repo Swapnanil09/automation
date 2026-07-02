@@ -7,9 +7,11 @@ Create Date: 2026-06-30
 Creates the full schema: users, workspaces, workspace_members, secrets,
 variables, workflows, workflow_runs, step_runs, notifications.
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0001_initial"
@@ -52,8 +54,10 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(140), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
-            "owner_id", sa.Uuid(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+            "owner_id",
+            sa.Uuid(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
         ),
     )
     op.create_index("ix_workspaces_slug", "workspaces", ["slug"], unique=True)
@@ -63,12 +67,16 @@ def upgrade() -> None:
         "workspace_members",
         *_id_cols(),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column(
-            "user_id", sa.Uuid(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+            "user_id",
+            sa.Uuid(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("role", sa.String(20), nullable=False),
         sa.UniqueConstraint("workspace_id", "user_id", name="uq_member"),
@@ -79,8 +87,10 @@ def upgrade() -> None:
         "secrets",
         *_id_cols(),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("key", sa.String(128), nullable=False),
         sa.Column("value_encrypted", sa.Text(), nullable=False),
@@ -93,8 +103,10 @@ def upgrade() -> None:
         "variables",
         *_id_cols(),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("key", sa.String(128), nullable=False),
         sa.Column("value", sa.Text(), nullable=False),
@@ -107,8 +119,10 @@ def upgrade() -> None:
         "workflows",
         *_id_cols(),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("name", sa.String(160), nullable=False),
         sa.Column("slug", sa.String(180), nullable=False),
@@ -119,8 +133,10 @@ def upgrade() -> None:
         sa.Column("enabled", sa.Boolean(), nullable=False),
         sa.Column("webhook_token", sa.String(64), nullable=True),
         sa.Column(
-            "created_by_id", sa.Uuid(),
-            sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+            "created_by_id",
+            sa.Uuid(),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
         ),
         sa.UniqueConstraint("workspace_id", "slug", name="uq_workflow_slug"),
     )
@@ -131,12 +147,16 @@ def upgrade() -> None:
         "workflow_runs",
         *_id_cols(),
         sa.Column(
-            "workflow_id", sa.Uuid(),
-            sa.ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False,
+            "workflow_id",
+            sa.Uuid(),
+            sa.ForeignKey("workflows.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("run_number", sa.Integer(), nullable=False),
         sa.Column("status", sa.String(20), nullable=False),
@@ -146,8 +166,10 @@ def upgrade() -> None:
         sa.Column("finished_at", sa.String(40), nullable=True),
         sa.Column("error", sa.Text(), nullable=True),
         sa.Column(
-            "triggered_by_id", sa.Uuid(),
-            sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+            "triggered_by_id",
+            sa.Uuid(),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
         ),
         sa.Column("celery_task_id", sa.String(64), nullable=True),
     )
@@ -158,8 +180,10 @@ def upgrade() -> None:
         "step_runs",
         *_id_cols(),
         sa.Column(
-            "run_id", sa.Uuid(),
-            sa.ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False,
+            "run_id",
+            sa.Uuid(),
+            sa.ForeignKey("workflow_runs.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("name", sa.String(200), nullable=False),
         sa.Column("step_index", sa.Integer(), nullable=False),
@@ -176,8 +200,10 @@ def upgrade() -> None:
         "notifications",
         *_id_cols(),
         sa.Column(
-            "user_id", sa.Uuid(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+            "user_id",
+            sa.Uuid(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("title", sa.String(200), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
@@ -185,8 +211,10 @@ def upgrade() -> None:
         sa.Column("is_read", sa.Boolean(), nullable=False),
         sa.Column("link", sa.String(400), nullable=True),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=True,
         ),
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])

@@ -4,9 +4,11 @@ Revision ID: 0003_deliveries
 Revises: 0002_connections
 Create Date: 2026-06-30
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0003_deliveries"
@@ -23,9 +25,24 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=_NOW, nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=_NOW, nullable=False),
-        sa.Column("workspace_id", sa.Uuid(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("workflow_id", sa.Uuid(), sa.ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("run_id", sa.Uuid(), sa.ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=True),
+        sa.Column(
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "workflow_id",
+            sa.Uuid(),
+            sa.ForeignKey("workflows.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        sa.Column(
+            "run_id",
+            sa.Uuid(),
+            sa.ForeignKey("workflow_runs.id", ondelete="CASCADE"),
+            nullable=True,
+        ),
         sa.Column("run_number", sa.Integer(), nullable=True),
         sa.Column("workflow_name", sa.String(160), nullable=False, server_default=""),
         sa.Column("step_name", sa.String(200), nullable=False, server_default=""),

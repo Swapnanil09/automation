@@ -1,4 +1,5 @@
 """Schemas for the report delivery log."""
+
 from __future__ import annotations
 
 from datetime import datetime

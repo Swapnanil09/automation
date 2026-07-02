@@ -1,4 +1,5 @@
 """User schemas (Phase 2)."""
+
 import uuid
 from datetime import datetime
 

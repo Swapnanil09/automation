@@ -4,6 +4,7 @@ Config is stored as an encrypted JSON blob. Reads return a *redacted* summary
 (secret fields masked). Updates merge over the stored config so a blank secret
 field means "keep the existing value".
 """
+
 from __future__ import annotations
 
 import json
@@ -138,23 +139,35 @@ class ConnectionService:
         await self.repo.delete(conn)
 
     async def test(
-        self, workspace_id: uuid.UUID, connection_id: uuid.UUID, to: str, include_attachment: bool = False
+        self,
+        workspace_id: uuid.UUID,
+        connection_id: uuid.UUID,
+        to: str,
+        include_attachment: bool = False,
     ) -> ConnectionTestResult:
         conn = await self._get(workspace_id, connection_id)
         try:
             channel = build_channel(conn.type, _decrypt_config(conn))
             msg = compose_message(
-                {"to": to, "subject": "AutoFlow test message",
-                 "body": f"This is a test from the '{conn.name}' connection."},
-                {}, workspace_id, conn.type
+                {
+                    "to": to,
+                    "subject": "AutoFlow test message",
+                    "body": f"This is a test from the '{conn.name}' connection.",
+                },
+                {},
+                workspace_id,
+                conn.type,
             )
             if include_attachment:
                 from app.integrations.base import Attachment
-                msg.attachments.append(Attachment(
-                    filename="test_report.csv",
-                    content=b"Date,Sales,Status\n2026-07-01,1500,Sent",
-                    mime_type="text/csv"
-                ))
+
+                msg.attachments.append(
+                    Attachment(
+                        filename="test_report.csv",
+                        content=b"Date,Sales,Status\n2026-07-01,1500,Sent",
+                        mime_type="text/csv",
+                    )
+                )
             result = channel.send(msg)
             return ConnectionTestResult(ok=result.ok, detail=result.summary)
         except ChannelError as exc:

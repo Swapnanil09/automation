@@ -5,6 +5,7 @@ No Postgres, Redis or Celery broker is required — Celery dispatch is stubbed
 so workflow execution is driven directly through the synchronous executor,
 exactly as the worker would.
 """
+
 import os
 import tempfile
 
@@ -28,14 +29,10 @@ from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
 
 _DB_FILE = tempfile.mktemp(suffix=".db")
-sync_engine = create_engine(
-    f"sqlite:///{_DB_FILE}", connect_args={"check_same_thread": False}
-)
+sync_engine = create_engine(f"sqlite:///{_DB_FILE}", connect_args={"check_same_thread": False})
 SyncSessionLocal = sessionmaker(sync_engine, class_=Session, expire_on_commit=False)
 async_engine = create_async_engine(f"sqlite+aiosqlite:///{_DB_FILE}")
-AsyncSessionLocal = async_sessionmaker(
-    async_engine, class_=AsyncSession, expire_on_commit=False
-)
+AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture(scope="session", autouse=True)

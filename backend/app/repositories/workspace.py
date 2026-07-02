@@ -1,4 +1,5 @@
 """Workspace + membership repositories."""
+
 import uuid
 
 from sqlalchemy import select

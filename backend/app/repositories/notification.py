@@ -1,4 +1,5 @@
 """Notification repository."""
+
 import uuid
 
 from sqlalchemy import select, update
@@ -36,5 +37,3 @@ class NotificationRepository(BaseRepository[Notification]):
             .where(Notification.user_id == user_id, Notification.is_read.is_(False))
             .values(is_read=True)
         )
-
-

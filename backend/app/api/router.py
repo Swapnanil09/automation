@@ -1,4 +1,5 @@
 """Aggregate router for API v1 — all feature routers mounted here."""
+
 from fastapi import APIRouter
 
 from app.api.v1 import (

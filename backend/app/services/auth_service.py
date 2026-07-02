@@ -1,4 +1,5 @@
 """Authentication & registration logic (Phase 2)."""
+
 from __future__ import annotations
 
 import jwt

@@ -1,4 +1,5 @@
 """User account model (Phase 2)."""
+
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 

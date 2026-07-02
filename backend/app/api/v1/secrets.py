@@ -3,6 +3,7 @@
 Secret *values* are write-only — list/read only ever returns metadata.
 Variables are non-sensitive and returned in full.
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 

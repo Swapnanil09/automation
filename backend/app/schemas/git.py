@@ -1,4 +1,5 @@
 """Git schemas (Phase 5)."""
+
 from pydantic import BaseModel, Field
 
 

@@ -3,6 +3,7 @@
 Configure Gmail / Telegram / WhatsApp credentials per workspace so workflows
 can deliver reports. Secret config values are write-only.
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -75,4 +76,6 @@ async def test_connection(
     ctx: WorkspaceContext = Depends(require_workspace_role(WorkspaceRole.MAINTAINER)),
     db: AsyncSession = Depends(get_db),
 ) -> ConnectionTestResult:
-    return await ConnectionService(db).test(ctx.workspace.id, connection_id, data.to, data.include_attachment)
+    return await ConnectionService(db).test(
+        ctx.workspace.id, connection_id, data.to, data.include_attachment
+    )

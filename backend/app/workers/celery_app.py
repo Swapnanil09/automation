@@ -1,4 +1,5 @@
 """Celery application (worker + beat share this instance)."""
+
 from celery import Celery
 
 from app.core.config import settings

@@ -3,6 +3,7 @@
 Delivery rows are written by the executor while running action steps. This service
 reads them back for the Delivery log UI, scoped to the workspaces a user can access.
 """
+
 from __future__ import annotations
 
 import uuid

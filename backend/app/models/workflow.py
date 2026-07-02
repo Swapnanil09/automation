@@ -1,4 +1,5 @@
 """Workflow definition, runs and step runs (Phases 7, 9, 10)."""
+
 import uuid
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
@@ -42,9 +43,11 @@ class Workflow(UUIDMixin, TimestampMixin, Base):
     def next_runs(self) -> list[str] | None:
         if self.trigger_type != "schedule" or not self.schedule_cron:
             return None
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
         from zoneinfo import ZoneInfo
+
         from croniter import croniter
+
         try:
             tz = ZoneInfo(self.schedule_tz or "UTC")
         except Exception:

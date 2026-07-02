@@ -1,4 +1,5 @@
 """In-app notification endpoints (Phase 11)."""
+
 import uuid
 
 from fastapi import APIRouter, Depends

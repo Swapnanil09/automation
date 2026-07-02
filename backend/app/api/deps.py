@@ -1,4 +1,5 @@
 """Shared FastAPI dependencies: DB session, auth, and workspace access control."""
+
 from __future__ import annotations
 
 import uuid
@@ -77,9 +78,7 @@ class WorkspaceContext:
 
     def require(self, minimum: WorkspaceRole) -> None:
         if role_rank(self.role) < role_rank(minimum.value):
-            raise ForbiddenError(
-                f"Requires '{minimum.value}' role (you have '{self.role}')"
-            )
+            raise ForbiddenError(f"Requires '{minimum.value}' role (you have '{self.role}')")
 
 
 async def get_workspace_ctx(

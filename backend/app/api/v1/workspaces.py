@@ -1,4 +1,5 @@
 """Workspace and membership endpoints (Phase 3)."""
+
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -34,6 +35,7 @@ def _read(ws, role: str | None) -> WorkspaceRead:
     out.role = role
     return out
 
+
 def _member_read(member, user) -> MemberRead:
     return MemberRead(
         id=member.id,
@@ -41,7 +43,6 @@ def _member_read(member, user) -> MemberRead:
         role=member.role,
         user=UserRead.model_validate(user),
     )
-
 
 
 @router.post("", response_model=WorkspaceRead, status_code=201)
@@ -64,9 +65,7 @@ async def list_workspaces(
     roles = {
         m.workspace_id: m.role
         for m in (
-            await db.execute(
-                select(WorkspaceMember).where(WorkspaceMember.user_id == user.id)
-            )
+            await db.execute(select(WorkspaceMember).where(WorkspaceMember.user_id == user.id))
         ).scalars()
     }
     return [_read(ws, roles.get(ws.id)) for ws in workspaces]

@@ -4,7 +4,7 @@ import {
   Send, TrendingUp, XCircle, X
 } from "lucide-react";
 import { api } from "../lib/api";
-import type { DashboardStats, Delivery } from "../lib/types";
+import type { DashboardStats, Delivery, RecentRun } from "../lib/types";
 import {
   Button, Card, CardBody, CardHeader, EmptyState, Input, PageHeader,
   Skeleton, StatCard, StatusPill, Table, TBody, TD, TH, THead, TR, cn, useToast,
@@ -19,6 +19,7 @@ type Granularity = "sec" | "min" | "hour" | "day" | "month";
 export default function Dashboard() {
   const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [runs, setRuns] = useState<RecentRun[] | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,10 +42,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.dashboard.stats().then(setStats).catch((e) => setError(e.message));
+    api.dashboard.runs({ limit: 200 }).then(setRuns).catch(() => setRuns([]));
     api.deliveries.list({ limit: 200 }).then(setDeliveries).catch(() => setDeliveries([]));
   }, []);
 
-  // Filter deliveries by selected date range
+  // Filter runs by selected date range
+  const filteredRuns = useMemo(() => {
+    if (!runs) return [];
+    const start = new Date(startDateStr);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDateStr);
+    end.setHours(23, 59, 59, 999);
+
+    return runs.filter((r) => {
+      const dt = new Date(r.created_at);
+      return dt >= start && dt <= end;
+    });
+  }, [runs, startDateStr, endDateStr]);
+
+  // Filter deliveries by selected date range (for breakdown and table)
   const filteredDeliveries = useMemo(() => {
     if (!deliveries) return [];
     const start = new Date(startDateStr);
@@ -60,33 +76,39 @@ export default function Dashboard() {
 
   useEffect(() => {
     setSelectedPoint(null);
-  }, [filteredDeliveries, granularity]);
+  }, [filteredRuns, granularity]);
 
-  // Compute stats based on the filtered deliveries
+  // Compute stats based on the filtered runs
   const computedStats = useMemo(() => {
-    const total = filteredDeliveries.length;
-    const success = filteredDeliveries.filter((d) => d.status === "delivered").length;
-    const failed = filteredDeliveries.filter((d) => d.status === "failed").length;
+    const total = filteredRuns.length;
+    const success = filteredRuns.filter((r) => r.status === "success").length;
+    const failed = filteredRuns.filter((r) => r.status === "failed").length;
     const rate = total > 0 ? Math.round((success / total) * 100) : 100;
 
+    return { total, success, failed, rate };
+  }, [filteredRuns]);
+
+  // Compute deliveries stats for the channel breakdown
+  const computedDeliveriesStats = useMemo(() => {
+    const total = filteredDeliveries.length;
     const channelBreakdown = filteredDeliveries.reduce((acc, d) => {
       acc[d.channel] = (acc[d.channel] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    return { total, success, failed, rate, channelBreakdown };
+    return { total, channelBreakdown };
   }, [filteredDeliveries]);
 
-  // Line Chart Data Aggregation
+  // Line Chart Data Aggregation (based on runs)
   const chartData = useMemo(() => {
-    if (filteredDeliveries.length === 0) {
+    if (filteredRuns.length === 0) {
       return { points: [], maxVal: 1 };
     }
 
     const groupMap = new Map<string, { label: string; success: number; failed: number; executing: number; sortKey: string }>();
 
-    filteredDeliveries.forEach((d) => {
-      const dt = new Date(d.created_at);
+    filteredRuns.forEach((r) => {
+      const dt = new Date(r.created_at);
       let key = "";
       let label = "";
 
@@ -115,15 +137,15 @@ export default function Dashboard() {
 
       const existing = groupMap.get(key);
       if (existing) {
-        if (d.status === "delivered") existing.success += 1;
-        else if (d.status === "failed") existing.failed += 1;
+        if (r.status === "success") existing.success += 1;
+        else if (r.status === "failed") existing.failed += 1;
         else existing.executing += 1;
       } else {
         groupMap.set(key, {
           label,
-          success: d.status === "delivered" ? 1 : 0,
-          failed: d.status === "failed" ? 1 : 0,
-          executing: (d.status !== "delivered" && d.status !== "failed") ? 1 : 0,
+          success: r.status === "success" ? 1 : 0,
+          failed: r.status === "failed" ? 1 : 0,
+          executing: (r.status !== "success" && r.status !== "failed") ? 1 : 0,
           sortKey: key,
         });
       }
@@ -144,7 +166,7 @@ export default function Dashboard() {
     const maxVal = Math.max(1, ...sortedEntries.map((e) => e.success + e.failed + e.executing));
 
     return { points: sortedEntries, maxVal };
-  }, [filteredDeliveries, granularity]);
+  }, [filteredRuns, granularity]);
 
   const handleExportCSV = () => {
     if (filteredDeliveries.length === 0) {
@@ -232,7 +254,7 @@ export default function Dashboard() {
 
   if (error) return <p className="text-danger">{error}</p>;
 
-  if (!stats || !deliveries) {
+  if (!stats || !deliveries || !runs) {
     return (
       <div className="space-y-6">
         <PageHeader title="Dashboard" description="Activity across all your workspaces." />
@@ -625,11 +647,11 @@ export default function Dashboard() {
         <Card className="lg:col-span-1">
           <CardHeader title="Deliveries by channel" description="Usage across Gmail, Telegram, WhatsApp." />
           <CardBody className="space-y-5 pt-5">
-            {Object.keys(computedStats.channelBreakdown).length === 0 ? (
+            {Object.keys(computedDeliveriesStats.channelBreakdown).length === 0 ? (
               <p className="text-center text-sm text-slate-400 py-16">No channels used in this range.</p>
             ) : (
-              Object.entries(computedStats.channelBreakdown).map(([ch, count]) => {
-                const percent = computedStats.total > 0 ? Math.round((count / computedStats.total) * 100) : 0;
+              Object.entries(computedDeliveriesStats.channelBreakdown).map(([ch, count]) => {
+                const percent = computedDeliveriesStats.total > 0 ? Math.round((count / computedDeliveriesStats.total) * 100) : 0;
                 const Icon = CHANNEL_ICON[ch] ?? Send;
                 return (
                   <div key={ch} className="space-y-1.5">

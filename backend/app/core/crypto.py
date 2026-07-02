@@ -5,6 +5,7 @@ Fernet key is derived deterministically from ``SECRET_KEY`` so no extra key
 material needs to be managed; rotating ``SECRET_KEY`` invalidates stored
 secrets (documented behaviour).
 """
+
 from __future__ import annotations
 
 import base64

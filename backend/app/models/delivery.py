@@ -4,6 +4,7 @@ One row per action-step send: which workflow/run, the channel + connection used,
 the recipients, the format, and the delivery status (executing → delivered / failed).
 This is the audit trail behind the Delivery log UI.
 """
+
 import uuid
 
 from sqlalchemy import ForeignKey, Integer, String, Text, Uuid
@@ -16,8 +17,10 @@ class Delivery(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "deliveries"
 
     workspace_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"),
-        index=True, nullable=False,
+        Uuid(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     workflow_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True

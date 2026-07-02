@@ -2,6 +2,7 @@
 
 A global feed across the caller's workspaces, plus a workspace-scoped list.
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, Query
@@ -26,8 +27,12 @@ async def list_deliveries(
     db: AsyncSession = Depends(get_db),
 ) -> list[DeliveryRead]:
     return await DeliveryService(db).list_for_user(
-        user.id, user.is_superuser,
-        limit=limit, status=status, channel=channel, workspace_id=workspace_id,
+        user.id,
+        user.is_superuser,
+        limit=limit,
+        status=status,
+        channel=channel,
+        workspace_id=workspace_id,
     )
 
 
@@ -40,5 +45,8 @@ async def list_workspace_deliveries(
     db: AsyncSession = Depends(get_db),
 ) -> list[DeliveryRead]:
     return await DeliveryService(db).list_for_workspace(
-        ctx.workspace.id, limit=limit, status=status, channel=channel,
+        ctx.workspace.id,
+        limit=limit,
+        status=status,
+        channel=channel,
     )

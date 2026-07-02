@@ -1,4 +1,5 @@
 """Workspace and membership models (Phase 3)."""
+
 import uuid
 
 from sqlalchemy import ForeignKey, String, Text, UniqueConstraint, Uuid

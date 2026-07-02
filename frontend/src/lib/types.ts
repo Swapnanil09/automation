@@ -116,18 +116,26 @@ export interface Notification {
   created_at: string;
 }
 
+export interface RecentRun {
+  id: string;
+  workflow_id: string;
+  workspace_id: string;
+  workflow_name: string;
+  workspace_slug: string;
+  status: string;
+  run_number: number;
+  created_at: string;
+}
+
 export interface DashboardStats {
   workspaces: number;
   workflows: number;
   total_runs: number;
   runs_by_status: { status: string; count: number }[];
   success_rate: number;
-  recent_runs: {
-    id: string; workflow_id: string; workspace_id: string;
-    workflow_name: string; workspace_slug: string;
-    status: string; run_number: number; created_at: string;
-  }[];
+  recent_runs: RecentRun[];
 }
+
 
 export interface ChannelField {
   key: string;

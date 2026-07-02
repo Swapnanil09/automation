@@ -1,4 +1,5 @@
 """Dashboard aggregate statistics (Phase 12)."""
+
 from __future__ import annotations
 
 import uuid
@@ -29,8 +30,12 @@ class DashboardService:
         ws_ids = await self._workspace_ids(user_id, is_superuser)
         if not ws_ids:
             return DashboardStats(
-                workspaces=0, workflows=0, total_runs=0,
-                runs_by_status=[], success_rate=0.0, recent_runs=[],
+                workspaces=0,
+                workflows=0,
+                total_runs=0,
+                runs_by_status=[],
+                success_rate=0.0,
+                recent_runs=[],
             )
 
         wf_count = int(
@@ -52,9 +57,7 @@ class DashboardService:
         ).all()
         by_status = [StatusCount(status=s, count=int(c)) for s, c in status_rows]
         total_runs = sum(sc.count for sc in by_status)
-        success = next(
-            (sc.count for sc in by_status if sc.status == RunStatus.SUCCESS.value), 0
-        )
+        success = next((sc.count for sc in by_status if sc.status == RunStatus.SUCCESS.value), 0)
         finished = sum(
             sc.count
             for sc in by_status
@@ -94,3 +97,33 @@ class DashboardService:
             success_rate=success_rate,
             recent_runs=recent,
         )
+
+    async def runs(
+        self, user_id: uuid.UUID, is_superuser: bool, limit: int = 200
+    ) -> list[RecentRun]:
+        ws_ids = await self._workspace_ids(user_id, is_superuser)
+        if not ws_ids:
+            return []
+        rows = (
+            await self.db.execute(
+                select(WorkflowRun, Workflow.name, Workspace.slug)
+                .join(Workflow, Workflow.id == WorkflowRun.workflow_id)
+                .join(Workspace, Workspace.id == WorkflowRun.workspace_id)
+                .where(WorkflowRun.workspace_id.in_(ws_ids))
+                .order_by(WorkflowRun.created_at.desc())
+                .limit(limit)
+            )
+        ).all()
+        return [
+            RecentRun(
+                id=str(run.id),
+                workflow_id=str(run.workflow_id),
+                workspace_id=str(run.workspace_id),
+                workflow_name=wf_name,
+                workspace_slug=ws_slug,
+                status=run.status,
+                run_number=run.run_number,
+                created_at=run.created_at.isoformat(),
+            )
+            for run, wf_name, ws_slug in rows
+        ]

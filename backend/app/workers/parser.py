@@ -23,6 +23,7 @@ message through a configured channel:
 Each step must have exactly one of ``run`` or ``uses``. On any structural
 problem the parser raises :class:`WorkflowParseError`.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

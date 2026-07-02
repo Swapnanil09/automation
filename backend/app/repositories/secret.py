@@ -1,4 +1,5 @@
 """Secret + variable repositories."""
+
 import uuid
 
 from sqlalchemy import select

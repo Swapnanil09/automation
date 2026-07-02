@@ -1,4 +1,5 @@
 """User administration & self-service (Phase 2)."""
+
 import uuid
 
 from fastapi import APIRouter, Depends

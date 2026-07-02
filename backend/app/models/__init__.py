@@ -1,4 +1,5 @@
 """Model package — imports every model so Alembic can discover metadata."""
+
 from app.models.base import Base
 from app.models.connection import Connection  # noqa: F401
 from app.models.delivery import Delivery  # noqa: F401

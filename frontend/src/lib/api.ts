@@ -1,7 +1,7 @@
 import type {
   BranchInfo, ChannelCatalogItem, CommitInfo, Connection, ConnectionTestResult,
   DashboardStats, Delivery, DirListing, FileContent, FileNode, GitStatus, Member,
-  Notification, Secret, Tokens, User, Variable, Workflow, WorkflowRun, Workspace,
+  Notification, RecentRun, Secret, Tokens, User, Variable, Workflow, WorkflowRun, Workspace,
 } from "./types";
 
 const BASE = "/api/v1";
@@ -208,5 +208,9 @@ export const api = {
     listForWorkspace: (ws: string, params: { limit?: number; status?: string; channel?: string } = {}) =>
       request<Delivery[]>(`/workspaces/${ws}/deliveries${qs(params)}`),
   },
-  dashboard: { stats: () => request<DashboardStats>("/dashboard/stats") },
+  dashboard: {
+    stats: () => request<DashboardStats>("/dashboard/stats"),
+    runs: (params: { limit?: number } = {}) => request<RecentRun[]>("/dashboard/runs" + qs(params)),
+  },
 };
+

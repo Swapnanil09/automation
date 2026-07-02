@@ -1,4 +1,5 @@
 """Data access for messaging connections."""
+
 from __future__ import annotations
 
 import uuid

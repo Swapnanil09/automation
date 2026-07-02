@@ -1,4 +1,5 @@
 """Notification creation and retrieval (Phase 11)."""
+
 from __future__ import annotations
 
 import uuid

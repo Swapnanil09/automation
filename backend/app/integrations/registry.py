@@ -1,4 +1,5 @@
 """Registry of available channels + factory helpers."""
+
 from __future__ import annotations
 
 from app.integrations.base import Channel, ChannelError

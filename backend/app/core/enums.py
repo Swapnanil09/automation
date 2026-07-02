@@ -1,4 +1,5 @@
 """Shared string enums (stored as VARCHAR for migration simplicity)."""
+
 from enum import Enum
 
 
@@ -8,9 +9,9 @@ class StrEnum(str, Enum):
 
 
 class UserRole(StrEnum):
-    ADMIN = "admin"      # platform administrator
-    MEMBER = "member"    # standard user
-    VIEWER = "viewer"    # read-only
+    ADMIN = "admin"  # platform administrator
+    MEMBER = "member"  # standard user
+    VIEWER = "viewer"  # read-only
 
 
 class WorkspaceRole(StrEnum):

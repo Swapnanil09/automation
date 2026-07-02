@@ -1,4 +1,5 @@
 """Workflow, run and step repositories."""
+
 import uuid
 
 from sqlalchemy import func, select
@@ -13,9 +14,7 @@ class WorkflowRepository(BaseRepository[Workflow]):
 
     async def get_by_slug(self, workspace_id: uuid.UUID, slug: str) -> Workflow | None:
         res = await self.session.execute(
-            select(Workflow).where(
-                Workflow.workspace_id == workspace_id, Workflow.slug == slug
-            )
+            select(Workflow).where(Workflow.workspace_id == workspace_id, Workflow.slug == slug)
         )
         return res.scalar_one_or_none()
 
@@ -28,9 +27,7 @@ class WorkflowRepository(BaseRepository[Workflow]):
         return list(res.scalars().all())
 
     async def get_by_webhook(self, token: str) -> Workflow | None:
-        res = await self.session.execute(
-            select(Workflow).where(Workflow.webhook_token == token)
-        )
+        res = await self.session.execute(select(Workflow).where(Workflow.webhook_token == token))
         return res.scalar_one_or_none()
 
     async def list_scheduled(self) -> list[Workflow]:

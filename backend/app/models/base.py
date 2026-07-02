@@ -1,4 +1,5 @@
 """Declarative base and shared model mixins."""
+
 import uuid
 from datetime import datetime
 

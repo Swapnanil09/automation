@@ -1,4 +1,5 @@
 """User repository."""
+
 from sqlalchemy import or_, select
 
 from app.models.user import User
@@ -19,9 +20,7 @@ class UserRepository(BaseRepository[User]):
     async def get_by_login(self, login: str) -> User | None:
         """Resolve by email OR username (case-insensitive email)."""
         res = await self.session.execute(
-            select(User).where(
-                or_(User.email == login.lower(), User.username == login)
-            )
+            select(User).where(or_(User.email == login.lower(), User.username == login))
         )
         return res.scalar_one_or_none()
 

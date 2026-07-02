@@ -8,6 +8,7 @@ the Media endpoint and delivered as documents.
 Note: outside a 24-hour customer service window, Meta only allows pre-approved
 template messages. Free-form text/documents work within an open session.
 """
+
 from __future__ import annotations
 
 from app.integrations.base import (
@@ -32,8 +33,10 @@ class WhatsAppChannel(Channel):
     send_hint = "to (phone in intl format), body, attachments"
     config_fields = [
         ConfigField(
-            "phone_number_id", "Phone number ID",
-            placeholder="1029384756", help="From the WhatsApp app's API setup.",
+            "phone_number_id",
+            "Phone number ID",
+            placeholder="1029384756",
+            help="From the WhatsApp app's API setup.",
         ),
         ConfigField("access_token", "Access token", secret=True),
     ]
@@ -65,15 +68,23 @@ class WhatsAppChannel(Channel):
                         doc["caption"] = text
                     refs.append(
                         self._message(
-                            {"messaging_product": "whatsapp", "to": to,
-                             "type": "document", "document": doc}
+                            {
+                                "messaging_product": "whatsapp",
+                                "to": to,
+                                "type": "document",
+                                "document": doc,
+                            }
                         )
                     )
             else:
                 refs.append(
                     self._message(
-                        {"messaging_product": "whatsapp", "to": to, "type": "text",
-                         "text": {"preview_url": False, "body": text or " "}}
+                        {
+                            "messaging_product": "whatsapp",
+                            "to": to,
+                            "type": "text",
+                            "text": {"preview_url": False, "body": text or " "},
+                        }
                     )
                 )
 

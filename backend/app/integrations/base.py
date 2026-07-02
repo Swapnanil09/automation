@@ -1,4 +1,5 @@
 """Channel abstractions shared by every messaging integration."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -135,6 +136,4 @@ class Channel(ABC):
     def validate_config(cls, config: dict[str, str]) -> None:
         missing = [k for k in cls.required_keys() if not str(config.get(k, "")).strip()]
         if missing:
-            raise ChannelError(
-                f"{cls.label} is missing required setting(s): {', '.join(missing)}"
-            )
+            raise ChannelError(f"{cls.label} is missing required setting(s): {', '.join(missing)}")

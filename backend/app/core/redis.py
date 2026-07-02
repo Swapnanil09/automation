@@ -1,4 +1,5 @@
 """Shared async Redis client."""
+
 from redis.asyncio import Redis
 
 from app.core.config import settings

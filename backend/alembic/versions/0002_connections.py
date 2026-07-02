@@ -4,9 +4,11 @@ Revision ID: 0002_connections
 Revises: 0001_initial
 Create Date: 2026-06-30
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0002_connections"
@@ -24,8 +26,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=_NOW, nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=_NOW, nullable=False),
         sa.Column(
-            "workspace_id", sa.Uuid(),
-            sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False,
+            "workspace_id",
+            sa.Uuid(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("type", sa.String(20), nullable=False),
         sa.Column("name", sa.String(120), nullable=False),

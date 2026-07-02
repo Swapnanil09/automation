@@ -1,4 +1,5 @@
 """Data access for the delivery log."""
+
 from __future__ import annotations
 
 from app.models.delivery import Delivery

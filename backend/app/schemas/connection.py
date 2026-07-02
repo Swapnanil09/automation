@@ -1,4 +1,5 @@
 """Schemas for messaging connections (integrations)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -42,7 +43,9 @@ class ConnectionRead(BaseModel):
 
 class ConnectionTestRequest(BaseModel):
     to: str = Field(description="A recipient to send a test message to")
-    include_attachment: bool = Field(default=False, description="Whether to attach a mock report file")
+    include_attachment: bool = Field(
+        default=False, description="Whether to attach a mock report file"
+    )
 
 
 class ConnectionTestResult(BaseModel):
