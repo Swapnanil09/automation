@@ -288,7 +288,7 @@ export default function WorkflowDetail() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(); }}
                 />
                 <Button size="sm" onClick={handleAddComment}>
-                  <MessageSquare className="h-4 w-4 mr-1" /> Comment
+                  <MessageSquare className="h-4 w-4" /> Comment
                 </Button>
               </div>
             </CardBody>

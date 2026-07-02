@@ -79,5 +79,8 @@ async def admin_update_user(
         user.is_active = data.is_active
     if data.role is not None:
         user.role = data.role
+    if data.is_superuser is not None:
+        user.is_superuser = data.is_superuser
     await db.flush()
+
     return user

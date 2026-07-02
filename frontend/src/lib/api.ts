@@ -132,6 +132,8 @@ export const api = {
     list: () => request<User[]>("/users"),
     updateMe: (body: { full_name?: string; password?: string }) =>
       request<User>("/users/me", { method: "PATCH", body }),
+    update: (id: string, body: { is_active?: boolean; role?: string; is_superuser?: boolean }) =>
+      request<User>(`/users/${id}`, { method: "PATCH", body }),
   },
   workspaces: {
     list: () => request<Workspace[]>("/workspaces"),

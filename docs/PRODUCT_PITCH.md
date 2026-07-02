@@ -37,27 +37,28 @@ AutoFlow is a **100% free, self-hosted automation platform** built for developer
 *   **CLI Parameter Passing**: Pass dynamic arguments (`sys.argv`) and capture raw outputs and errors directly in the step console logs.
 
 ### 📊 3. Interactive Zoomable Trend Graph
-*   **Real-time Scroll-to-Zoom**: Dynamic pixel-based width scaling. Simply **hover over the graph and scroll the mouse wheel** to zoom in and out horizontally in real-time, just like financial stock-market applications.
+*   **Real-time Scroll-to-Zoom**: Dynamic pixel-based width scaling. Simply **hover over the graph and scroll the mouse wheel** to zoom in and out horizontally in real-time.
 *   **Status Filters**: Toggle between views to show all executions or isolate Success (Delivered), Failed, or Executing timelines.
 *   **Vertex Data Dots**: Visible coordinates plotted directly on paths to denote execution ticks.
 *   **Expanded white tooltip card**: High-contrast, floating tooltip displaying clear, larger stats.
 *   **Click-to-Inspect Overlay (Stock-style)**: Clicking any coordinate dot or vertical gridline anchors a solid indigo guide line, overlays a larger coordinate marker, and expands a dedicated datapoint card underneath the chart showing the exact timestamp and run counts.
 
-### 🔔 4. Dynamic Notifications Dropdown
-*   **Recent 5 Timeline**: The header bell icon now opens a rich floating dropdown menu showing the 5 most recent read/unread system notifications.
-*   **Direct Navigation**: Clicking any notification item automatically marks it as read, updates the global unread count in real-time, and routes directly to the relevant resource or run.
-*   **Clean Status Color-Coding**: Displays clear color indicators (Success vs. Failures) and human-friendly time tags.
-*   **"See all" shortcut**: Quick redirect button at the footer to navigate to the full notifications inbox list.
+### 👥 4. Collaborative Discussions & Access Sharing
+*   **Threaded Comments**: Post messages directly on any workflow page to discuss performance or configuration.
+*   **Teammate `@username` Mentions**: Reference colleagues using `@username` to trigger real-time notifications in their inbox.
+*   **Access Sharing**: Share access permissions with other workspace members.
+*   **Ownership Transfer**: Seamless transfer of workflow ownership from one member to another.
 
-### 📂 5. SPA Route & Tab State Persistence
-*   **URL Parameter Binding**: Workspace details sub-tabs (Files, Workflows, Contacts, Secrets, Members, Settings) are now bound to the `?tab=` URL query parameter.
-*   **Flawless Back-Navigation**: Going back from a workflow's run details or editor correctly remembers and returns the user to the `Workflows` tab rather than defaulting to the first `Files` tab.
-*   **Refresh Proof**: Reloading the page maintains the currently active view tab.
+### 🛡️ 5. Role-Based Access Control (RBAC) & Admin User Promotion
+*   **Dynamic Role Dropdown**: Superadmins can change any user's role status (Superuser vs. Standard User) at any time directly using table dropdowns in the Admin Panel.
+*   **Endpoint Shielding**: Enforces strict superuser permissions on global delivery feeds, user listings, and scale/worker controls.
+*   **Celery Worker Monitor & Restarts**: Live ping checks of worker uptime, active task counts, and broadcast commands to restart worker pools.
 
-### ✉️ 6. Optional Failure Email Notification with Logs
-*   **Toggle Switch**: Easily enable or disable emails on failed executions with a toggle switch on the Workflow Details page.
-*   **Direct-to-Inbox Alert**: Automatically delivers notifications to the email used during registration.
-*   **Comprehensive Log Logs**: Embeds the full step-by-step stdout/stderr execution logs and error details directly in the email body, saving time troubleshooting.
+### ⚡ 6. Native Pipeline Steps (SQL, Excel, Compress, SFTP)
+*   **Native Steps**: Direct YAML actions for database querying (`sql`), formatting to Excel (`excel`), packaging archives (`compress`), and secure SFTP uploads (`sftp`) without writing verbose script utilities.
+*   **Execution Replay**: Instantly replay past runs with the exact same variables and parameters.
+*   **Conflict Detection**: Real-time cron check warnings to detect schedule overlaps and avoid bottlenecks.
+
 
 ---
 

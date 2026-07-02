@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import type { AdminStats, WorkerInfo, User } from "../lib/types";
 import {
   Badge, Button, Card, ErrorText, Field, Input, Modal, PageHeader, Skeleton,
-  useToast,
+  useToast, Select,
 } from "../components/ui";
 
 export default function AdminPanel() {
@@ -84,10 +84,10 @@ export default function AdminPanel() {
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => { loadStats(); loadWorkers(); loadUsers(); }}>
-              <RefreshCw className="h-4 w-4 mr-1" /> Sync
+              <RefreshCw className="h-4 w-4" /> Sync
             </Button>
             <Button onClick={() => setOpenUserModal(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Provision User
+              <Plus className="h-4 w-4" /> Provision User
             </Button>
           </div>
         }
@@ -242,9 +242,24 @@ export default function AdminPanel() {
                       <td className="px-6 py-4 text-sm text-slate-600">{u.full_name || "—"}</td>
                       <td className="px-6 py-4 text-sm text-slate-500">{u.email}</td>
                       <td className="px-6 py-4">
-                        <Badge tone={u.is_superuser ? "brand" : "neutral"}>
-                          {u.is_superuser ? "Superuser" : "Standard User"}
-                        </Badge>
+                        <Select
+                          value={u.is_superuser ? "superuser" : "standard"}
+                          onChange={async (e) => {
+                            const val = e.target.value;
+                            const isSuper = val === "superuser";
+                            try {
+                              await api.users.update(u.id, { is_superuser: isSuper });
+                              setUsers(prev => prev ? prev.map(usr => usr.id === u.id ? { ...usr, is_superuser: isSuper } : usr) : null);
+                              toast.success(`User @${u.username} role updated`);
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Failed to update role");
+                            }
+                          }}
+                          className="h-8 text-xs py-0.5 font-semibold bg-white"
+                        >
+                          <option value="superuser">Superuser</option>
+                          <option value="standard">Standard User</option>
+                        </Select>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-400">
                         {new Date(u.created_at).toLocaleDateString()}
@@ -292,8 +307,8 @@ export default function AdminPanel() {
                     <Badge tone={w.status === "healthy" ? "ok" : "danger"}>
                       {w.status === "healthy" ? "Running" : "Unresponsive"}
                     </Badge>
-                    <Button variant="secondary" onClick={() => handleRestartWorker(w.name)}>
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Restart Pool
+                    <Button size="sm" variant="secondary" onClick={() => handleRestartWorker(w.name)}>
+                      <RefreshCw className="h-3.5 w-3.5" /> Restart Pool
                     </Button>
                   </div>
                 </div>

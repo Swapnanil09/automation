@@ -28,3 +28,5 @@ class UserUpdate(BaseModel):
 class UserAdminUpdate(BaseModel):
     is_active: bool | None = None
     role: str | None = None
+    is_superuser: bool | None = None
+
