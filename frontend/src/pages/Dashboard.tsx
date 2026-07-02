@@ -392,11 +392,23 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-400 mt-1">Total: {chartData.points[0].success + chartData.points[0].failed} dispatches ({chartData.points[0].label})</p>
               </div>
             ) : svgPaths ? (
-              <div className="relative w-full h-52 overflow-x-auto scroll-slim">
+              <div 
+                className="relative w-full h-52 overflow-x-auto scroll-slim select-none"
+                onWheel={(e) => {
+                  e.preventDefault();
+                  if (e.deltaY < 0) {
+                    setZoom((prev) => Math.min(3, prev + 0.15));
+                  } else {
+                    setZoom((prev) => Math.max(1, prev - 0.15));
+                  }
+                }}
+              >
                 <svg
-                  viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
-                  style={{ width: `${100 * zoom}%`, minWidth: "100%" }}
+                  width={zoom > 1 ? 500 * zoom : "100%"}
+                  height={180}
+                  viewBox={`0 0 ${500 * zoom} 180`}
                   className="h-full text-brand overflow-visible"
+                  style={{ minWidth: "100%" }}
                 >
                   <defs>
                     <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
@@ -407,7 +419,7 @@ export default function Dashboard() {
 
                   {/* Horizontal gridlines */}
                   {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
-                    const y = padding.top + r * (svgDimensions.height - padding.top - padding.bottom);
+                    const y = padding.top + r * (180 - padding.top - padding.bottom);
                     const val = Math.round(chartData.maxVal * (1 - r));
                     return (
                       <g key={i} className="opacity-40">
