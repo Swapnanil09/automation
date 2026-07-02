@@ -44,6 +44,18 @@
   .scroll-slim::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+
+  @keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-gradient-bg {
+    background: linear-gradient(-45deg, #4f46e5, #ec4899, #3b82f6, #06b6d4, #8b5cf6);
+    background-size: 400% 400%;
+    animation: gradientAnimation 12s ease infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

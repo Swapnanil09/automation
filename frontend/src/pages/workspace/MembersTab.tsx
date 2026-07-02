@@ -6,8 +6,6 @@ import {
   Avatar, Badge, Button, Card, ErrorText, Field, IconButton, Input, Modal, Select, useToast,
 } from "../../components/ui";
 
-const ROLES = ["viewer", "member", "maintainer", "owner"];
-
 export default function MembersTab({ wsId, canManage }: { wsId: string; canManage: boolean }) {
   const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
@@ -48,23 +46,45 @@ export default function MembersTab({ wsId, canManage }: { wsId: string; canManag
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {canManage && m.role !== "owner" ? (
+                {canManage ? (
                   <div className="w-36">
                     <Select
                       value={m.role}
-                      onChange={async (e) => { await api.workspaces.members.update(wsId, m.id, e.target.value); toast.success("Role updated"); load(); }}
+                      onChange={async (e) => {
+                        try {
+                          await api.workspaces.members.update(wsId, m.id, e.target.value);
+                          toast.success("Role updated successfully");
+                          load();
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to update role");
+                        }
+                      }}
                       className="capitalize"
                     >
-                      {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                      <option value="viewer">read</option>
+                      <option value="member">write</option>
+                      <option value="maintainer">edit</option>
+                      <option value="maintainer">coadmin</option>
+                      <option value="owner">owner</option>
                     </Select>
                   </div>
                 ) : (
-                  <Badge tone={m.role === "owner" ? "brand" : "neutral"} className="capitalize">{m.role}</Badge>
+                  <Badge tone={m.role === "owner" ? "brand" : "neutral"} className="capitalize">
+                    {m.role === "viewer" ? "read" : m.role === "member" ? "write" : m.role === "maintainer" ? "coadmin" : m.role}
+                  </Badge>
                 )}
                 {canManage && m.role !== "owner" && (
                   <IconButton
                     className="hover:bg-danger-50 hover:text-danger"
-                    onClick={async () => { await api.workspaces.members.remove(wsId, m.id); toast.success("Member removed"); load(); }}
+                    onClick={async () => {
+                      try {
+                        await api.workspaces.members.remove(wsId, m.id);
+                        toast.success("Member removed");
+                        load();
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to remove member");
+                      }
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </IconButton>
@@ -90,7 +110,11 @@ export default function MembersTab({ wsId, canManage }: { wsId: string; canManag
           <Field label="Username or email" htmlFor="mem-user"><Input id="mem-user" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus placeholder="ada" /></Field>
           <Field label="Role" htmlFor="mem-role">
             <Select id="mem-role" value={role} onChange={(e) => setRole(e.target.value)} className="capitalize">
-              {ROLES.filter((r) => r !== "owner").map((r) => <option key={r} value={r}>{r}</option>)}
+              <option value="viewer">read</option>
+              <option value="member">write</option>
+              <option value="maintainer">edit</option>
+              <option value="maintainer">coadmin</option>
+              <option value="owner">owner</option>
             </Select>
           </Field>
           <ErrorText>{error}</ErrorText>

@@ -114,3 +114,17 @@ stream.** Full instructions in [SETUP.md](SETUP.md).
   sessions and stored secrets; keep it stable and backed up.
 - **Workflows execute arbitrary shell commands** on the worker; treat workspace write
   access as code-execution access and run workers with least privilege.
+
+## UI/UX Polish & Accessibility Upgrades (July 2026)
+
+To deliver a premium, state-of-the-art developer experience, the platform received a major interface overhaul:
+- **Dashboard Metric Enhancements:** KPI card borders were hardened with a crisp, solid black border (`!border-black`) to improve visual hierarchy and scannability on light themes.
+- **Vibrant Animated Login & Registration:** Replaced the plain login page background with a dynamic, fluid, animated linear gradient mesh that cycles smoothly between indigo, pink, blue, cyan, and purple. Designed a centered dark glassmorphic card container (`backdrop-blur-xl bg-slate-900/75 border border-white/10`) featuring high-contrast typography, premium focus states, and input field glassmorphism.
+- **Themed Modal System:** Overhauled all modal overlays to feature a custom semi-transparent blurred backdrop (`bg-slate-950/60 backdrop-blur-sm`), a structural top accent bar in brand purple, and clean gradient headers (`bg-gradient-to-r from-slate-50 to-indigo-50/20`) to draw visual focus to dialog screens.
+- **Friendly Workspace Roles Mapping:** Realigned technical database roles with highly readable team access permissions in the workspace members tab:
+  - `viewer` ➔ `read`
+  - `member` ➔ `write`
+  - `maintainer` ➔ `edit` / `coadmin`
+  - `owner` ➔ `owner`
+- **Dynamic Role Management:** Enabled workspace maintainers/owners to change access levels for all members (including owners) directly from a select dropdown with active error toast feedback.
+

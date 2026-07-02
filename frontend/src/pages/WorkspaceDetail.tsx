@@ -65,7 +65,11 @@ export default function WorkspaceDetail() {
         title={
           <span className="flex items-center gap-3">
             {ws.name}
-            {ws.role && <Badge tone="brand" className="capitalize">{ws.role}</Badge>}
+            {ws.role && (
+              <Badge tone="brand" className="capitalize">
+                {ws.role === "viewer" ? "read" : ws.role === "member" ? "write" : ws.role === "maintainer" ? "coadmin" : ws.role}
+              </Badge>
+            )}
           </span>
         }
         description={<span className="font-mono text-xs">{ws.slug}</span>}

@@ -288,24 +288,28 @@ export default function Dashboard() {
           value={computedStats.total}
           icon={<Play className="h-[18px] w-[18px]" />}
           hint={`From ${startDateStr} to ${endDateStr}`}
+          className="!border-black"
         />
         <StatCard
           label="Delivered"
           value={computedStats.success}
           icon={<CheckCircle2 className="h-[18px] w-[18px] text-ok" />}
           hint="Successful deliveries"
+          className="!border-black"
         />
         <StatCard
           label="Failed"
           value={computedStats.failed}
           icon={<XCircle className="h-[18px] w-[18px] text-danger" />}
           hint="Rejected deliveries"
+          className="!border-black"
         />
         <StatCard
           label="Success rate"
           value={`${computedStats.rate}%`}
           icon={<TrendingUp className="h-[18px] w-[18px]" />}
           hint="Within filtered range"
+          className="!border-black"
         />
       </div>
 

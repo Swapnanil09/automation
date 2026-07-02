@@ -94,9 +94,9 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
   );
 }
 
-export function Label({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+export function Label({ children, htmlFor, className }: { children: ReactNode; htmlFor?: string; className?: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-[13px] font-medium text-ink">
+    <label htmlFor={htmlFor} className={cn("mb-1.5 block text-[13px] font-medium text-ink", className)}>
       {children}
     </label>
   );
@@ -108,11 +108,11 @@ export function Help({ children }: { children: ReactNode }) {
 }
 
 export function Field({
-  label, htmlFor, help, error, children,
-}: { label?: string; htmlFor?: string; help?: ReactNode; error?: ReactNode; children: ReactNode }) {
+  label, htmlFor, help, error, children, labelClassName,
+}: { label?: string; htmlFor?: string; help?: ReactNode; error?: ReactNode; children: ReactNode; labelClassName?: string }) {
   return (
     <div>
-      {label && <Label htmlFor={htmlFor}>{label}</Label>}
+      {label && <Label htmlFor={htmlFor} className={labelClassName}>{label}</Label>}
       {children}
       {error ? (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-danger">
@@ -403,23 +403,23 @@ export function Modal({
   const w = size === "sm" ? "max-w-sm" : size === "lg" ? "max-w-2xl" : "max-w-md";
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[10vh] animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 backdrop-blur-sm p-4 pt-[10vh] animate-fade-in"
       onClick={onClose}
     >
       <div
-        className={cn("w-full rounded-2xl border border-line bg-surface shadow-pop animate-pop-in", w)}
+        className={cn("w-full rounded-2xl border border-slate-200/80 bg-surface shadow-2xl animate-pop-in overflow-hidden border-t-4 border-t-brand-600", w)}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-indigo-50/20 px-6 py-4.5 border-b border-slate-100">
           <div>
-            <h3 className="text-base font-semibold text-ink">{title}</h3>
-            {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+            <h3 className="text-base font-bold text-slate-900">{title}</h3>
+            {description && <p className="mt-0.5 text-[12px] text-muted">{description}</p>}
           </div>
-          <IconButton onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></IconButton>
+          <IconButton onClick={onClose} aria-label="Close" className="hover:bg-slate-200/60"><X className="h-4 w-4" /></IconButton>
         </div>
-        <div className="px-5 pb-5">{children}</div>
+        <div className="px-6 py-5 text-sm text-slate-600">{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-hairline px-5 py-3.5">
+          <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-6 py-3.5 bg-slate-50/50">
             {footer}
           </div>
         )}
