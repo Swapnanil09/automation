@@ -25,6 +25,7 @@ export default function Dashboard() {
   // Granularity selector for the line graph
   const [granularity, setGranularity] = useState<Granularity>("day");
   const [chartView, setChartView] = useState<"all" | "success" | "failed" | "executing">("all");
+  const [zoom, setZoom] = useState<number>(1);
 
   // Date range state (default to past 7 days)
   const [startDateStr, setStartDateStr] = useState(() => {
@@ -173,7 +174,7 @@ export default function Dashboard() {
   };
 
   // Generate SVG coordinates for Line Graph
-  const svgDimensions = { width: 500, height: 180 };
+  const svgDimensions = useMemo(() => ({ width: 500 * zoom, height: 180 }), [zoom]);
   const padding = { left: 40, right: 20, top: 15, bottom: 25 };
 
   const svgPaths = useMemo(() => {
@@ -209,6 +210,9 @@ export default function Dashboard() {
       successPath,
       failedPath,
       executingPath,
+      successCoords,
+      failedCoords,
+      executingCoords,
       points: points.map((p, idx) => ({
         x: padding.left + (idx / (points.length - 1)) * w,
         y: svgDimensions.height - padding.bottom - (Math.max(p.success, p.failed, p.executing) / maxVal) * h,
@@ -218,7 +222,7 @@ export default function Dashboard() {
         executing: p.executing,
       })),
     };
-  }, [chartData]);
+  }, [chartData, svgDimensions, zoom]);
 
   if (error) return <p className="text-danger">{error}</p>;
 
@@ -326,6 +330,27 @@ export default function Dashboard() {
             
             {/* Controls: view selector & granularity */}
             <div className="flex items-center gap-3">
+              {/* Zoom Controls */}
+              <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5 border border-slate-200/20">
+                <button
+                  onClick={() => setZoom(prev => Math.max(1, prev - 0.25))}
+                  className="rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-500 hover:text-slate-700 hover:bg-white select-none transition-all"
+                  title="Zoom Out"
+                >
+                  -
+                </button>
+                <span className="text-[9px] font-bold text-slate-600 px-1 select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoom(prev => Math.min(3, prev + 0.25))}
+                  className="rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-500 hover:text-slate-700 hover:bg-white select-none transition-all"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+              </div>
+
               {/* Dropdown for Status Filter */}
               <select
                 value={chartView}
@@ -367,10 +392,11 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-400 mt-1">Total: {chartData.points[0].success + chartData.points[0].failed} dispatches ({chartData.points[0].label})</p>
               </div>
             ) : svgPaths ? (
-              <div className="relative w-full h-52">
+              <div className="relative w-full h-52 overflow-x-auto scroll-slim">
                 <svg
                   viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
-                  className="w-full h-full text-brand overflow-visible"
+                  style={{ width: `${100 * zoom}%`, minWidth: "100%" }}
+                  className="h-full text-brand overflow-visible"
                 >
                   <defs>
                     <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
@@ -414,6 +440,7 @@ export default function Dashboard() {
                       strokeWidth="2.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      strokeDasharray="4 4"
                     />
                   )}
                   {svgPaths.executingPath && (chartView === "all" || chartView === "executing") && (
@@ -435,8 +462,23 @@ export default function Dashboard() {
                       strokeWidth="2.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      strokeDasharray="4 4"
                     />
                   )}
+
+                  {/* Circle Dots for each data point vertex */}
+                  {(chartView === "all" || chartView === "success") &&
+                    svgPaths.successCoords?.map((c, i) => (
+                      <circle key={`s-${i}`} cx={c.x} cy={c.y} r="3" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
+                    ))}
+                  {(chartView === "all" || chartView === "executing") &&
+                    svgPaths.executingCoords?.map((c, i) => (
+                      <circle key={`e-${i}`} cx={c.x} cy={c.y} r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
+                    ))}
+                  {(chartView === "all" || chartView === "failed") &&
+                    svgPaths.failedCoords?.map((c, i) => (
+                      <circle key={`f-${i}`} cx={c.x} cy={c.y} r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+                    ))}
 
                   {/* Vertical interaction guide lines and tooltips */}
                   {svgPaths.points.map((pt, idx) => (
@@ -460,27 +502,29 @@ export default function Dashboard() {
                         strokeDasharray="2 2"
                         className="opacity-0 group-hover/guide:opacity-100 transition-opacity pointer-events-none"
                       />
-                      {/* Hover tooltip */}
+                      {/* Hover tooltip - white, slightly larger */}
                       <g className="opacity-0 group-hover/guide:opacity-100 transition-opacity duration-150 pointer-events-none z-30">
                         <rect
-                          x={pt.x - 55}
+                          x={pt.x - 65}
                           y={padding.top}
-                          width="110"
-                          height="56"
-                          rx="5"
-                          fill="#1e293b"
+                          width="130"
+                          height="72"
+                          rx="6"
+                          fill="#ffffff"
+                          stroke="#cbd5e1"
+                          strokeWidth="1.5"
                           className="shadow-premium"
                         />
-                        <text x={pt.x} y={padding.top + 12} textAnchor="middle" className="text-[9px] fill-slate-300 font-bold font-sans">
+                        <text x={pt.x} y={padding.top + 14} textAnchor="middle" className="text-[10px] fill-slate-700 font-extrabold font-sans">
                           {pt.label}
                         </text>
-                        <text x={pt.x} y={padding.top + 23} textAnchor="middle" className="text-[9px] fill-emerald-400 font-bold font-sans">
+                        <text x={pt.x} y={padding.top + 28} textAnchor="middle" className="text-[10px] fill-emerald-600 font-extrabold font-sans">
                           Delivered: {pt.success}
                         </text>
-                        <text x={pt.x} y={padding.top + 34} textAnchor="middle" className="text-[9px] fill-rose-400 font-bold font-sans">
+                        <text x={pt.x} y={padding.top + 42} textAnchor="middle" className="text-[10px] fill-rose-600 font-extrabold font-sans">
                           Failed: {pt.failed}
                         </text>
-                        <text x={pt.x} y={padding.top + 45} textAnchor="middle" className="text-[9px] fill-amber-400 font-bold font-sans">
+                        <text x={pt.x} y={padding.top + 56} textAnchor="middle" className="text-[10px] fill-amber-600 font-extrabold font-sans">
                           Executing: {pt.executing}
                         </text>
                       </g>
