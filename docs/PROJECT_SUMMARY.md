@@ -127,4 +127,8 @@ To deliver a premium, state-of-the-art developer experience, the platform receiv
   - `maintainer` ➔ `edit` / `coadmin`
   - `owner` ➔ `owner`
 - **Dynamic Role Management:** Enabled workspace maintainers/owners to change access levels for all members (including owners) directly from a select dropdown with active error toast feedback.
+- **Admin Security, Shell Logs, & Pagination (July 2026):**
+  - **Admin Registration Token**: Added support for an environment-configured `ADMIN_REGISTRATION_TOKEN` that can be entered during signup to claim superuser (admin) status securely.
+  - **Shell Step Logs Tracking**: Integrated all shell step (`run:`) execution histories into the global Deliveries log alongside action integrations, rendered with a dedicated `Terminal` icon and filterable by `Shell` channel.
+  - **Dashboard Logs Pagination**: Paginated the dashboard's "Execution details log" table to display only the last 5 logs initially. Users can load more in increments of 5 up to a maximum of 25. Once 25 logs are reached, the action button redirects the user to the full Logs section.
 

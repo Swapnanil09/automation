@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar, CheckCircle2, Download, Mail, MessageCircle, Play,
-  Send, TrendingUp, XCircle, X, Globe
+  Send, TrendingUp, XCircle, X, Globe, Terminal
 } from "lucide-react";
 import { api } from "../lib/api";
 import type { DashboardStats, Delivery, RecentRun } from "../lib/types";
@@ -11,17 +12,19 @@ import {
 } from "../components/ui";
 
 const CHANNEL_ICON: Record<string, typeof Mail> = {
-  gmail: Mail, telegram: Send, whatsapp: MessageCircle,
+  gmail: Mail, telegram: Send, whatsapp: MessageCircle, shell: Terminal,
 };
 
 type Granularity = "sec" | "min" | "hour" | "day" | "month";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [runs, setRuns] = useState<RecentRun[] | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [logLimit, setLogLimit] = useState(5);
 
   // Granularity selector for the line graph
   const [granularity, setGranularity] = useState<Granularity>("day");
@@ -74,6 +77,10 @@ export default function Dashboard() {
       return dt >= start && dt <= end;
     });
   }, [deliveries, startDateStr, endDateStr]);
+
+  const displayedDeliveries = useMemo(() => {
+    return filteredDeliveries.slice(0, logLimit);
+  }, [filteredDeliveries, logLimit]);
 
   useEffect(() => {
     setSelectedPoint(null);
@@ -744,7 +751,7 @@ export default function Dashboard() {
       {/* Date-Range Filtered Deliveries Table Details */}
       <Card>
         <CardHeader title="Execution details log" description="Detailed recipient logs in the selected date range." />
-        {filteredDeliveries.length === 0 ? (
+        {displayedDeliveries.length === 0 ? (
           <div className="p-5">
             <EmptyState
               icon={<Calendar className="h-5 w-5" />}
@@ -765,7 +772,7 @@ export default function Dashboard() {
                 </TR>
               </THead>
               <TBody>
-                {filteredDeliveries.map((d) => {
+                {displayedDeliveries.map((d) => {
                   const dt = new Date(d.created_at);
                   const formattedDate = dt.toLocaleDateString(undefined, { timeZone: timezone === "local" ? undefined : timezone, month: "short", day: "numeric", year: "numeric" });
                   const formattedTime = dt.toLocaleTimeString(undefined, { timeZone: timezone === "local" ? undefined : timezone, hour: "2-digit", minute: "2-digit" }) + (timezone === "local" ? "" : ` (${timezone})`);
@@ -807,6 +814,28 @@ export default function Dashboard() {
                 })}
               </TBody>
             </Table>
+            {filteredDeliveries.length > logLimit && (
+              <div className="flex justify-center p-4 border-t border-slate-100 bg-slate-50/30">
+                {logLimit < 25 ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLogLimit((prev) => Math.min(25, prev + 5))}
+                    className="font-semibold text-xs transition-all active:scale-[0.98]"
+                  >
+                    Show more (+5)
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/deliveries")}
+                    className="font-semibold text-xs !bg-brand hover:!bg-brand/90 transition-all text-white active:scale-[0.98]"
+                  >
+                    View all logs in Logs section
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
