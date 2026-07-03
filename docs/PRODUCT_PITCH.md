@@ -59,6 +59,10 @@ AutoFlow is a **100% free, self-hosted automation platform** built for developer
 *   **Execution Replay**: Instantly replay past runs with the exact same variables and parameters.
 *   **Conflict Detection**: Real-time cron check warnings to detect schedule overlaps and avoid bottlenecks.
 
+### 🛡️ 7. Admin Security, Shell Logs, & Pagination (July 2026)
+*   **Admin Registration Token**: Secure administrative registration by verifying an environment-configured token during signup.
+*   **Shell Step Logs Tracking**: Native integration of shell step (`run:`) execution histories into the global Deliveries log under a `"shell"` channel, represented with a `Terminal` icon in the UI.
+*   **Dashboard Logs Pagination**: The dashboard execution log table shows only the last 5 logs initially. Users can expand in increments of 5 up to 25. Reaching 25 logs redirects the user to the full Logs section.
 
 ---
 
@@ -68,3 +72,13 @@ AutoFlow is a **100% free, self-hosted automation platform** built for developer
 *   **Celery & Redis**: Background job queue processing heavy shell workloads asynchronously.
 *   **PostgreSQL 16**: Relational storage for metadata, deliveries, users, and audit logs.
 *   **Vite React SPA**: Modern single page application built on React 18, TypeScript, and TailwindCSS.
+
+---
+
+## 🚀 Production Scaling & Roadmap
+
+To support enterprise-grade high-availability and security in production environments, the platform defines the following optimization roadmap:
+*   **Sandbox Execution Isolation (Docker/gVisor)**: Running each shell execution task inside an ephemeral, resource-constrained container to ensure maximum host security.
+*   **WebSocket Observability**: Real-time log streaming and event updates via Redis Pub/Sub, eliminating frontend HTTP polling.
+*   **PgBouncer Pooling**: Managed transaction-level database multiplexing to handle highly concurrent API and worker operations.
+*   **OLAP Log Storage (ClickHouse)**: Dedicated column-oriented analytics integration for sub-millisecond querying over millions of execution logs (detailed in [docs/CLICKHOUSE_PRODUCTION_SETUP.md](docs/CLICKHOUSE_PRODUCTION_SETUP.md)).
