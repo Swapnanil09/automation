@@ -113,6 +113,9 @@ REDIS_PORT=6379
 
 # Shared workspace storage directory
 WORKSPACES_ROOT=/mnt/efs/workspaces
+
+# Optional Admin Registration Token to secure administrative signup
+ADMIN_REGISTRATION_TOKEN=your-secure-admin-token
 ```
 
 ### Step 4: Run Database Migrations
@@ -134,7 +137,7 @@ Deploy your container groups using the following replica settings:
 
 ## 3. Production Security Checklist
 
-- [ ] **Disable Public Registrations:** The first user to register receives admin (superuser) permissions. Once the admin account is set up, toggle registration off or add authentication/invite gates in front of registration endpoints.
+- [ ] **Enforce Admin Registration Token:** Configure `ADMIN_REGISTRATION_TOKEN` in production. This secures administrative registration, requiring signup requests to present the correct token to claim superuser (admin) privileges.
 - [ ] **Run Workers Under Least Privilege:** In the `worker` Docker image, ensure the entrypoint executes command execution tasks under a non-root OS user (e.g., user `celery`), restricting system commands from accessing host system files.
 - [ ] **Secret Encryption:** The database records all secrets under AES-256 Fernet symmetric encryption. Ensure your `SECRET_KEY` is safely backed up in a secure vault (like AWS Secrets Manager or HashiCorp Vault) and is never printed in log streams.
 - [ ] **Ingress SSL Termination:** Configure Nginx, Traefik, or AWS ALB to enforce SSL/TLS (HTTPS) only, routing API endpoints under `/api` and serving static files for all other routes.
@@ -157,3 +160,22 @@ Deploy your container groups using the following replica settings:
    * Add triggers: `manual`, time-based `schedule` (supporting custom cron expressions evaluated against local timezones), or `webhook` URLs to start runs from GitHub, GitLab, or external service hooks.
 5. **Observability:**
    * Watch runs execute step-by-step with real-time logs, timing breakdowns, execution history, and in-app notifications.
+
+---
+
+## 5. Optional Analytical Migration (ClickHouse)
+
+When scaling to millions of workflow runs, transactional database queries on PostgreSQL (for trends, lines, global logs, and search) may degrade application performance. In high-throughput settings, it is highly recommended to migrate delivery log storage to ClickHouse.
+
+If you choose to perform this migration:
+1. **Review the Migration Guide:** Consult the detailed [docs/CLICKHOUSE_PRODUCTION_SETUP.md](file:///C:/Users/CLIRKOL-56/Documents/github_clone/autoflow/docs/CLICKHOUSE_PRODUCTION_SETUP.md) for database tables, schema models, and python optimization examples.
+2. **Setup a ClickHouse Cluster:** Deploy an isolated ClickHouse server or managed group (e.g., ClickHouse Cloud).
+3. **Add ClickHouse Credentials:** Configure target environment variables:
+   ```ini
+   CLICKHOUSE_HOST=your-clickhouse-host
+   CLICKHOUSE_PORT=9000
+   CLICKHOUSE_USER=default
+   CLICKHOUSE_PASSWORD=your-clickhouse-password
+   CLICKHOUSE_DB=autoflow
+   ```
+4. **Update Logs Path**: Update the backend task runner `executor.py` to write step outputs directly to ClickHouse, and configure the API endpoints (`/deliveries` and `/dashboard/stats`) to pull aggregates from ClickHouse tables.
