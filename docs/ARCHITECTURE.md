@@ -335,6 +335,37 @@ write actions are hidden/disabled based on the caller's workspace role (derived 
 
 ---
 
+## New tables (added in v1.1)
+
+| Table               | Purpose                          | Notable columns                                                                 |
+|---------------------|----------------------------------|---------------------------------------------------------------------------------|
+| `api_tokens`        | Personal access tokens           | `user_id` (FK), `name`, `token` (unique), `last_used_at`, `expires_at`          |
+| `app_settings`      | Key-value app configuration      | `key` (unique), `value`                                                         |
+
+These store API tokens for programmatic access and application-wide settings (SMTP config, data retention policies, etc.).
+
+## UI features (frontend)
+
+The frontend now includes:
+
+- **Dark/Light theme toggle** — persisted to both localStorage and the server (`users.theme_preference`)
+- **Collapsible sidebar** — icon-only mode saved to localStorage
+- **Cron expression builder** — visual presets with `croner`-based next-run preview
+- **Workflow templates** — 6 pre-built templates for one-click cloning
+- **Workflow import/export** — download YAML definitions, upload from file
+- **API token management** — generate/revoke tokens from the user menu
+- **SMTP configuration** — admin settings page for email delivery
+- **Audit log** — global activity feed with user, action, and timestamp
+- **Data retention** — auto-delete old runs and logs by age
+- **Session management** — view/revoke active login sessions
+- **Runner node details** — worker health, uptime, tasks, memory
+- **Onboarding wizard** — guided first-time setup for new users
+- **Dashboard customization** — toggle stat card visibility
+- **Run history filters** — search/filter by status, date, keywords
+- **Webhook test tool** — one-click webhook trigger testing
+- **Mobile responsive** — touch targets, scrollable tables, full-width modals
+- **Premium UI polish** — animated gradients, glassmorphism, smooth transitions
+
 ## See also
 
 - [IMPLEMENTATION_FLOW.md](IMPLEMENTATION_FLOW.md) — phase-by-phase build order and

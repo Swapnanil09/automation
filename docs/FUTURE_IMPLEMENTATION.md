@@ -1,6 +1,31 @@
 # 🔮 AutoFlow: Future Implementation Roadmap
 
-This document outlines the planned improvements and optimizations to evolve AutoFlow into a highly resilient, enterprise-grade, and secure automation platform. 
+This document outlines the planned improvements and optimizations to evolve AutoFlow into a highly resilient, enterprise-grade, and secure automation platform.
+
+---
+
+## ✅ Recently Implemented Features
+
+The following features from the original roadmap have been implemented:
+
+| Feature | Status |
+|---------|--------|
+| API Token Management | ✅ Done |
+| Workflow Templates Library | ✅ Done |
+| Cron Expression Builder | ✅ Done |
+| SMTP Configuration UI | ✅ Done |
+| Audit Log Dashboard | ✅ Done |
+| Run History Search & Filter | ✅ Done |
+| Workflow Import/Export | ✅ Done |
+| Data Retention Policies | ✅ Done |
+| Dashboard Customization | ✅ Done |
+| Session Management | ✅ Done |
+| Runner Node Management | ✅ Done |
+| Onboarding Wizard | ✅ Done |
+| Webhook Testing Tool | ✅ Done |
+| Dark/Light Theme with persistence | ✅ Done |
+| Collapsible Sidebar | ✅ Done |
+| Mobile Responsive Design | ✅ Done |
 
 ---
 
@@ -51,3 +76,10 @@ This document outlines the planned improvements and optimizations to evolve Auto
         retries: 3
         timeout: 120
     ```
+
+## 🎨 7. UI/UX Enhancements
+- [ ] Drag-and-drop workflow builder
+- [ ] Real-time collaboration (multi-user editing)
+- [ ] Advanced charting with drill-down analytics
+- [ ] Custom dashboard widgets
+- [ ] Keyboard shortcuts

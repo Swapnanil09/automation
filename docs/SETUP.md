@@ -132,6 +132,21 @@ make migrate                               # apply (alembic upgrade head)
 (Equivalently: `docker compose exec api alembic revision --autogenerate -m "..."` and
 `docker compose exec api alembic upgrade head`.)
 
+### 5A. Database migrations
+
+> **Note:** When updating from an older version, always run migrations to apply any new tables or schema changes:
+
+```bash
+docker compose exec api alembic upgrade head    # or: make migrate
+```
+
+If you encounter a "Multiple head revisions" error, run:
+
+```bash
+docker compose exec api alembic merge -m "merge heads" heads
+docker compose exec api alembic upgrade head
+```
+
 ### 6A. First run — create your first automation
 
 1. Open **http://localhost:5173** and click **Create one** to register. The **first

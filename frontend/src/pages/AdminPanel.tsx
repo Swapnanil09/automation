@@ -480,7 +480,7 @@ export default function AdminPanel() {
         onClose={() => setEditUser(null)}
         title={`Edit User: @${editUser?.username || ""}`}
         description="View and modify user account details."
-        size="lg"
+        size="md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setEditUser(null)}>Cancel</Button>

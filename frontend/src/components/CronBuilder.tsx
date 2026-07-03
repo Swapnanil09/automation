@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import Cron from "croner";
+import { Cron } from "croner";
 import { cn, Input } from "./ui";
 import { AlertCircle, CalendarDays } from "lucide-react";
 
