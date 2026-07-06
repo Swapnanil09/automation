@@ -8,7 +8,7 @@ Everything runs on open-source software. No SaaS, no cloud lock-in. `docker comp
 and you have the whole stack on your machine.
 
 > **Status:** all phases complete, plus messaging integrations and a light-theme UI.
-> The backend exposes 51 REST endpoints, a YAML
+> The backend exposes 99 REST endpoints, a YAML
 > workflow engine, a cron scheduler, webhook triggers, encrypted secrets, an embedded
 > Git per workspace, and a React SPA covering every feature. `ruff` clean, integration
 > test suite green.

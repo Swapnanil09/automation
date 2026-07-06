@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Mail, RefreshCw, Send, Server, Shield } from "lucide-react";
+import { Check, RefreshCw, Send, Server, Shield } from "lucide-react";
 import { api } from "../lib/api";
 import type { SmtpConfig } from "../lib/types";
 import {

@@ -3,7 +3,7 @@ import { Copy, Key, Plus, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import type { ApiToken, ApiTokenCreated } from "../lib/types";
 import {
-  Badge, Button, Card, EmptyState, ErrorText, Field, Input, Modal, PageHeader,
+  Badge, Button, EmptyState, ErrorText, Field, Input, Modal, PageHeader,
   Table, TBody, TD, TH, THead, TR, useToast,
 } from "../components/ui";
 

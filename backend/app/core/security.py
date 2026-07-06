@@ -26,7 +26,8 @@ TokenType = Literal["access", "refresh"]
 def hash_password(password: str) -> str:
     """Hash a plaintext password (bcrypt, 72-byte input cap handled)."""
     pwd = password.encode("utf-8")[:72]
-    return bcrypt.hashpw(pwd, bcrypt.gensalt()).decode("utf-8")
+    rounds = 4 if settings.ENVIRONMENT == "development" else 12
+    return bcrypt.hashpw(pwd, bcrypt.gensalt(rounds=rounds)).decode("utf-8")
 
 
 def verify_password(password: str, hashed: str) -> bool:

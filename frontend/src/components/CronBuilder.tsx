@@ -50,8 +50,8 @@ export default function CronBuilder({ value, onChange, className }: CronBuilderP
     }
     try {
       const cronInstance = new Cron(input.trim());
-      const runs = cronInstance.next(3);
-      setNextRuns(Array.isArray(runs) ? runs : runs ? [runs] : []);
+      const runs = cronInstance.nextRuns(3);
+      setNextRuns(runs);
       setError(null);
     } catch {
       setError("Invalid cron expression. Use standard 5-field format.");
